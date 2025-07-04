@@ -90,16 +90,13 @@ void mqttPublishData() {
   if ((millis() - lastMsg) >= INTERVALO_PRINCIPAL) {
     if (mqttClient.connected()) {
         lastMsg = millis();
-        // publico lo que tengo que publicar
-
         mqttClient.publish("TPI_ACUNA_BNA/37", msg);
     }
   }
 }
 
 void getData() {
-  // Simulación de datos al no contar con sensores reales
-  
+
 }
 
 void setupMqtt() {
@@ -119,7 +116,7 @@ void spiffsInit() {
 String processor(const String& var){
   Serial.println(var);
   if(var == "STATE"){
-    if(digitalRead(ledPin)){
+    if(digitalRead(PIN_LED)){
       dataState = "CORTA";
     } else {
       dataState = "LARGA";
