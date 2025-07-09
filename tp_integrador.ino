@@ -49,7 +49,15 @@ const unsigned long INTERVALO_TRY_CONNECT = 2500; // Para reconectar al broker M
 const unsigned long INTERVALO_PRINCIPAL = 5000; // Para simulación, para publicación de datos
 
 // Variables
-String dataState;
+enum UnitState {
+  LIBRE = 0,
+  OCUPADO = 1,
+  POTENCIALMENTE_LIBRE = 2
+};
+UnitState stateNodeA;
+UnitState stateNodeB;
+UnitState stateNodeC;
+UnitState stateNodeD;
 unsigned long lastMsg = 0;
 unsigned long lastTimeBotRan = 0;
 unsigned long lastNotificationTime = 0;
@@ -139,14 +147,18 @@ void setupServer() {
   });
 
   // Encender LED
-  server.on("/on", HTTP_GET, [](AsyncWebServerRequest *request){
-    digitalWrite(PIN_LED, HIGH);
+  server.on("/nodeA/on", HTTP_GET, [](AsyncWebServerRequest *request){
+    nodeStateA = OCUPADO;
     request->send(SPIFFS, "/index.html", String(), false, processor);
   });
 
   // Apagar LED
   server.on("/off", HTTP_GET, [](AsyncWebServerRequest *request){
-    digitalWrite(PIN_LED, LOW);
+    if (nodeStateA == OCUPADO) {
+      nodeStateA = POTENCIALMENTE_LIBRE;
+    } else if (nodeStateA == POTENCIALMENTE_LIBRE) {
+      nodeStateA = LIBRE;
+    }
     request->send(SPIFFS, "/index.html", String(), false, processor);
   });
 
