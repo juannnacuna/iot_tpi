@@ -14,39 +14,89 @@
       <tr>
         <td>
           <h2>Unidad 37A</h2>
-          <p>Distancia: <strong>%STATE_NODE_A%</strong></p>
+          <p>Data: <span id="dataNodeA"></span>cm</p>
+          <p>Estado: <strong id="stateNodeA">%STATE_NODE_A%</strong></p>
           <p>
-            <a href="nodeA/ocupar"><button class="button">OCUPAR</button></a>
-            <a href="nodeA/liberar"><button class="button button2">LIBERAR</button></a>
+            <a href="ocuparNodeA"><button class="button">OCUPAR</button></a>
+            <a href="liberarNodeA"><button class="button button2">LIBERAR</button></a>
           </p>
         </td>
         <td>
           <h2>Unidad 37B</h2>
-          <p>Distancia: <strong>%STATE_NODE_B%</strong></p>
+          <p>Data: <span id="dataNodeB"></span>cm</p>
+          <p>Estado: <strong id="stateNodeB">%STATE_NODE_B%</strong></p>
           <p>
-            <a href="nodeB/ocupar"><button class="button">OCUPAR</button></a>
-            <a href="nodeB/liberar"><button class="button button2">LIBERAR</button></a>
+            <a href="ocuparNodeB"><button class="button">OCUPAR</button></a>
+            <a href="liberarNodeB"><button class="button button2">LIBERAR</button></a>
           </p>
         </td>
       </tr>
       <tr>
         <td>
           <h2>Unidad 37C</h2>
-          <p>Distancia: <strong>%STATE_NODE_C%</strong></p>
+          <p>Data: <span id="dataNodeC"></span>cm</p>
+          <p>Estado: <strong id="stateNodeC">%STATE_NODE_C%</strong></p>
           <p>
-            <a href="nodeC/ocupar"><button class="button">OCUPAR</button></a>
-            <a href="nodeC/liberar"><button class="button button2">LIBERAR</button></a>
+            <a href="ocuparNodeC"><button class="button">OCUPAR</button></a>
+            <a href="liberarNodeC"><button class="button button2">LIBERAR</button></a>
           </p>
         </td>
         <td>
           <h2>Unidad 37D</h2>
-          <p>Distancia: <strong>%STATE_NODE_D%</strong></p>
+          <p>Data: <span id="dataNodeD"></span>cm</p>
+          <p>Estado: <strong id="stateNodeD">%STATE_NODE_D%</strong></p>
           <p>
-            <a href="nodeD/ocupar"><button class="button">OCUPAR</button></a>
-            <a href="nodeD/liberar"><button class="button button2">LIBERAR</button></a>
+            <a href="ocuparNodeD"><button class="button">OCUPAR</button></a>
+            <a href="liberarNodeD"><button class="button button2">LIBERAR</button></a>
           </p>
         </td>
       </tr>
     </table>
+
+    <!-- Script para actualizar automatica los estados cada 5 segundos -->
+    <script>
+      setInterval(function() {
+        fetch('/dataNodeA')
+          .then(response => response.text())
+          .then(data => {
+            document.getElementById("dataNodeA").innerHTML = data;
+          });
+        fetch('/statusNodeA')
+          .then(response => response.text())
+          .then(data => {
+            document.getElementById("stateNodeA").innerHTML = data;
+          });
+        fetch('/dataNodeB')
+          .then(response => response.text())
+          .then(data => {
+            document.getElementById("dataNodeB").innerHTML = data;
+          });
+        fetch('/statusNodeB')
+          .then(response => response.text())
+          .then(data => {
+            document.getElementById("stateNodeB").innerHTML = data;
+          });
+        fetch('/dataNodeC')
+          .then(response => response.text())
+          .then(data => {
+            document.getElementById("dataNodeC").innerHTML = data;
+          });
+        fetch('/statusNodeC')
+          .then(response => response.text())
+          .then(data => {
+            document.getElementById("stateNodeC").innerHTML = data;
+          });
+        fetch('/dataNodeD')
+          .then(response => response.text())
+          .then(data => {
+            document.getElementById("dataNodeD").innerHTML = data;
+          });
+        fetch('/statusNodeD')
+          .then(response => response.text())
+          .then(data => {
+            document.getElementById("stateNodeD").innerHTML = data;
+          });
+      }, 5000);
+    </script>
   </body>
 </html>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>ESP32 Web Server</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" type="text/css" href="style.css">
+</head>
+<body>
+  <h1>ESP32 Web Server</h1>
+
+  <p>GPIO state: <strong>%STATE%</strong></p>
+  <p><a href="/on"><button class="button">ON</button></a></p>
+  <p><a href="/off"><button class="button button2">OFF</button></a></p>
+
+  <hr>
+
+  <h2>Sensor DHT11</h2>
+  <p>Temperatura: <span id="temp">--</span> °C</p>
+  <p>Humedad: <span id="hum">--</span> %</p>
+
+  <script>
+    setInterval(() => {
+      fetch('/temperature')
+        .then(response => response.text())
+        .then(data => {
+          document.getElementById("temp").innerHTML = data;
+        });
+
+      fetch('/humidity')
+        .then(response => response.text())
+        .then(data => {
+          document.getElementById("hum").innerHTML = data;
+        });
+    }, 5000); // Actualiza cada 5 segundos
+  </script>
+</body>
+</html>

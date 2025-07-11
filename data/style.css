@@ -33,7 +33,7 @@ td {
 
 .button {
   display: inline-block;
-  background-color: #008CBA;
+  background-color: #f44336;
   border: none;
   border-radius: 50px;
   color: white;
@@ -45,5 +45,5 @@ td {
 }
 
 .button2 {
-  background-color: #f44336;
+  background-color: #4CAF50;
 }

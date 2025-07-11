@@ -80,6 +80,8 @@ void callback(char* topic, byte* message, unsigned int length);
 void telegramCheckNewMessages();
 void telegramHandleNewMessages(int numNewMessages);
 void getData();
+String stateToString(UnitState state);
+String processor(const String& var);
 
 void setup() {
   Serial.begin(115200);
@@ -109,12 +111,15 @@ void mqttPublishData() {
 
 // Acá iría la lógica para obtener los datos de los sensores o del estado de las unidades
 void getData() {
-  Serial.println("Obteniendo datos...");
-  Serial.println("Estado de las unidades:");
-  Serial.println("Unidad A: " + stateToString(stateUnitA));
-  Serial.println("Unidad B: " + stateToString(stateUnitB));
-  Serial.println("Unidad C: " + stateToString(stateUnitC));
-  Serial.println("Unidad D: " + stateToString(stateUnitD));
+  // REHACER ESTO
+  if ((millis() - lastMsg) >= INTERVALO_PRINCIPAL) {
+    Serial.println("Obteniendo datos...");
+    Serial.println("Estado de las unidades:");
+    Serial.println("Unidad A: " + stateToString(stateUnitA));
+    Serial.println("Unidad B: " + stateToString(stateUnitB));
+    Serial.println("Unidad C: " + stateToString(stateUnitC));
+    Serial.println("Unidad D: " + stateToString(stateUnitD));
+  }
 }
 
 void setupMqtt() {
@@ -173,11 +178,11 @@ void setupServer() {
   });
 
   // Cambiar estado de nodo A
-  server.on("/nodeA/ocupar", HTTP_GET, [](AsyncWebServerRequest *request){
+  server.on("/ocuparNodeA", HTTP_GET, [](AsyncWebServerRequest *request){
     stateUnitA = OCUPADO;
     request->send(SPIFFS, "/index.html", String(), false, processor);
   });
-  server.on("/nodeA/liberar", HTTP_GET, [](AsyncWebServerRequest *request){
+  server.on("/liberarNodeA", HTTP_GET, [](AsyncWebServerRequest *request){
     if (stateUnitA == OCUPADO) {
       stateUnitA = POTENCIALMENTE_LIBRE;
     } else if (stateUnitA == POTENCIALMENTE_LIBRE) {
@@ -185,13 +190,24 @@ void setupServer() {
     }
     request->send(SPIFFS, "/index.html", String(), false, processor);
   });
+  server.on("/statusNodeA", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(200, "text/plain", stateToString(stateUnitA));
+  });
+  server.on("/dataNodeA", HTTP_GET, [](AsyncWebServerRequest *request){
+    float distance = NAN; // Aquí deberías obtener la distancia real del sensor
+    if (isnan(distance)) {
+      request->send(200, "text/plain", "Error al leer distancia");
+    } else {
+      request->send(200, "text/plain", String(distance));
+    }
+  });
 
   // Cambiar estado de nodo B
-  server.on("/nodeB/ocupar", HTTP_GET, [](AsyncWebServerRequest *request){
+  server.on("/ocuparNodeB", HTTP_GET, [](AsyncWebServerRequest *request){
     stateUnitB = OCUPADO;
     request->send(SPIFFS, "/index.html", String(), false, processor);
   });
-  server.on("/nodeB/liberar", HTTP_GET, [](AsyncWebServerRequest *request){
+  server.on("/liberarNodeB", HTTP_GET, [](AsyncWebServerRequest *request){
     if (stateUnitB == OCUPADO) {
       stateUnitB = POTENCIALMENTE_LIBRE;
     } else if (stateUnitB == POTENCIALMENTE_LIBRE) {
@@ -199,13 +215,24 @@ void setupServer() {
     }
     request->send(SPIFFS, "/index.html", String(), false, processor);
   });
+  server.on("/statusNodeB", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(200, "text/plain", stateToString(stateUnitB));
+  });
+  server.on("/dataNodeB", HTTP_GET, [](AsyncWebServerRequest *request){
+    float distance = NAN; // Aquí deberías obtener la distancia real del sensor
+    if (isnan(distance)) {
+      request->send(200, "text/plain", "Error al leer distancia");
+    } else {
+      request->send(200, "text/plain", String(distance));
+    }
+  });
 
   // Cambiar estado de nodo C
-  server.on("/nodeC/ocupar", HTTP_GET, [](AsyncWebServerRequest *request){
+  server.on("/ocuparNodeC", HTTP_GET, [](AsyncWebServerRequest *request){
     stateUnitC = OCUPADO;
     request->send(SPIFFS, "/index.html", String(), false, processor);
   });
-  server.on("/nodeC/liberar", HTTP_GET, [](AsyncWebServerRequest *request){
+  server.on("/liberarNodeC", HTTP_GET, [](AsyncWebServerRequest *request){
     if (stateUnitC == OCUPADO) {
       stateUnitC = POTENCIALMENTE_LIBRE;
     } else if (stateUnitC == POTENCIALMENTE_LIBRE) {
@@ -213,19 +240,41 @@ void setupServer() {
     }
     request->send(SPIFFS, "/index.html", String(), false, processor);
   });
+  server.on("/statusNodeC", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(200, "text/plain", stateToString(stateUnitC));
+  });
+  server.on("/dataNodeC", HTTP_GET, [](AsyncWebServerRequest *request){
+    float distance = NAN; // Aquí deberías obtener la distancia real del sensor
+    if (isnan(distance)) {
+      request->send(200, "text/plain", "Error al leer distancia");
+    } else {
+      request->send(200, "text/plain", String(distance));
+    }
+  });
 
   // Cambiar estado de nodo D
-  server.on("/nodeD/ocupar", HTTP_GET, [](AsyncWebServerRequest *request){
+  server.on("/ocuparNodeD", HTTP_GET, [](AsyncWebServerRequest *request){
     stateUnitD = OCUPADO;
     request->send(SPIFFS, "/index.html", String(), false, processor);
   });
-  server.on("/nodeD/liberar", HTTP_GET, [](AsyncWebServerRequest *request){
+  server.on("/liberarNodeD", HTTP_GET, [](AsyncWebServerRequest *request){
     if (stateUnitD == OCUPADO) {
       stateUnitD = POTENCIALMENTE_LIBRE;
     } else if (stateUnitD == POTENCIALMENTE_LIBRE) {
       stateUnitD = LIBRE;
     }
     request->send(SPIFFS, "/index.html", String(), false, processor);
+  });
+  server.on("/statusNodeD", HTTP_GET, [](AsyncWebServerRequest *request){
+    request->send(200, "text/plain", stateToString(stateUnitD));
+  });
+  server.on("/dataNodeD", HTTP_GET, [](AsyncWebServerRequest *request){
+    float distance = NAN; // Aquí deberías obtener la distancia real del sensor
+    if (isnan(distance)) {
+      request->send(200, "text/plain", "Error al leer distancia");
+    } else {
+      request->send(200, "text/plain", String(distance));
+    }
   });
 
   server.begin();
