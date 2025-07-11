@@ -53,7 +53,17 @@
       </tr>
     </table>
 
-    <!-- Script para actualizar automatica los estados cada 5 segundos -->
+    <br>
+
+    <div class="info">
+      <p>La informacion se actualiza cada 5 segundos.</p>
+      <p>Cambios de estados:</p>
+      <p>Ocupar unidad libre o potencialmente libre -> Unidad ocupada</p>
+      <p>Liberar unidad ocupada -> Unidad potencialmente libre</p>
+      <p>Liberar unidad potencialmente libre -> Unidad libre</p>
+    </div>
+
+    <!-- Script para actualizar informacion cada 5 segundos -->
     <script>
       setInterval(function() {
         fetch('/dataNodeA')

@@ -47,3 +47,10 @@ td {
 .button2 {
   background-color: #4CAF50;
 }
+
+.info {
+  margin: 20px auto;
+  max-width: 600px;
+  text-align: left;
+  font-size: 14px;
+}
