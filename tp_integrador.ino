@@ -13,6 +13,10 @@
 // #define DEBUG_TELEGRAM_RESPONSE_TIME // Comentar/descomentar para habilitar/deshabilitar el debug por serial de tiempo de respuesta con bot de Telegram
 
 #define PIN_LED 2
+#define PIN_NODE_A 
+#define PIN_NODE_B 
+#define PIN_NODE_C 
+#define PIN_NODE_D 
 #define DISTANCIA_OCUPADO_MEDIA 15  // cm
 #define DISTANCIA_OCUPADO_MAS_MENOS 5  // cm
 
@@ -54,10 +58,10 @@ enum UnitState {
   OCUPADO = 1,
   POTENCIALMENTE_LIBRE = 2
 };
-UnitState stateNodeA;
-UnitState stateNodeB;
-UnitState stateNodeC;
-UnitState stateNodeD;
+UnitState stateUnitA = POTENCIALMENTE_LIBRE;
+UnitState stateUnitB = POTENCIALMENTE_LIBRE;
+UnitState stateUnitC = POTENCIALMENTE_LIBRE;
+UnitState stateUnitD = POTENCIALMENTE_LIBRE;
 unsigned long lastMsg = 0;
 unsigned long lastTimeBotRan = 0;
 unsigned long lastNotificationTime = 0;
@@ -103,8 +107,14 @@ void mqttPublishData() {
   }
 }
 
+// Acá iría la lógica para obtener los datos de los sensores o del estado de las unidades
 void getData() {
-
+  Serial.println("Obteniendo datos...");
+  Serial.println("Estado de las unidades:");
+  Serial.println("Unidad A: " + stateToString(stateUnitA));
+  Serial.println("Unidad B: " + stateToString(stateUnitB));
+  Serial.println("Unidad C: " + stateToString(stateUnitC));
+  Serial.println("Unidad D: " + stateToString(stateUnitD));
 }
 
 void setupMqtt() {
@@ -120,17 +130,33 @@ void spiffsInit() {
   Serial.println("SPIFFS mounted successfully");
 }
 
-// Replaces placeholder with LED state value
+String stateToString(UnitState state) {
+  switch (state) {
+    case LIBRE:
+      return "Libre";
+    case OCUPADO:
+      return "Ocupado";
+    case POTENCIALMENTE_LIBRE:
+      return "Potencialmente libre";
+    default:
+      return "Estado desconocido";
+  }
+}
+
+// Processor function for updating variables in HTML
 String processor(const String& var){
   Serial.println(var);
-  if(var == "STATE"){
-    if(digitalRead(PIN_LED)){
-      dataState = "CORTA";
-    } else {
-      dataState = "LARGA";
-    }
-    Serial.print(dataState);
-    return dataState;
+  if (var == "STATE_NODE_A") {
+    return stateToString(stateUnitA);
+  }
+  if (var == "STATE_NODE_B") {
+    return stateToString(stateUnitB);
+  }
+  if (var == "STATE_NODE_C") {
+    return stateToString(stateUnitC);
+  }
+  if (var == "STATE_NODE_D") {
+    return stateToString(stateUnitD);
   }
   return String();
 }
@@ -146,18 +172,58 @@ void setupServer() {
     request->send(SPIFFS, "/style.css", "text/css");
   });
 
-  // Encender LED
-  server.on("/nodeA/on", HTTP_GET, [](AsyncWebServerRequest *request){
-    nodeStateA = OCUPADO;
+  // Cambiar estado de nodo A
+  server.on("/nodeA/ocupar", HTTP_GET, [](AsyncWebServerRequest *request){
+    stateUnitA = OCUPADO;
+    request->send(SPIFFS, "/index.html", String(), false, processor);
+  });
+  server.on("/nodeA/liberar", HTTP_GET, [](AsyncWebServerRequest *request){
+    if (stateUnitA == OCUPADO) {
+      stateUnitA = POTENCIALMENTE_LIBRE;
+    } else if (stateUnitA == POTENCIALMENTE_LIBRE) {
+      stateUnitA = LIBRE;
+    }
     request->send(SPIFFS, "/index.html", String(), false, processor);
   });
 
-  // Apagar LED
-  server.on("/off", HTTP_GET, [](AsyncWebServerRequest *request){
-    if (nodeStateA == OCUPADO) {
-      nodeStateA = POTENCIALMENTE_LIBRE;
-    } else if (nodeStateA == POTENCIALMENTE_LIBRE) {
-      nodeStateA = LIBRE;
+  // Cambiar estado de nodo B
+  server.on("/nodeB/ocupar", HTTP_GET, [](AsyncWebServerRequest *request){
+    stateUnitB = OCUPADO;
+    request->send(SPIFFS, "/index.html", String(), false, processor);
+  });
+  server.on("/nodeB/liberar", HTTP_GET, [](AsyncWebServerRequest *request){
+    if (stateUnitB == OCUPADO) {
+      stateUnitB = POTENCIALMENTE_LIBRE;
+    } else if (stateUnitB == POTENCIALMENTE_LIBRE) {
+      stateUnitB = LIBRE;
+    }
+    request->send(SPIFFS, "/index.html", String(), false, processor);
+  });
+
+  // Cambiar estado de nodo C
+  server.on("/nodeC/ocupar", HTTP_GET, [](AsyncWebServerRequest *request){
+    stateUnitC = OCUPADO;
+    request->send(SPIFFS, "/index.html", String(), false, processor);
+  });
+  server.on("/nodeC/liberar", HTTP_GET, [](AsyncWebServerRequest *request){
+    if (stateUnitC == OCUPADO) {
+      stateUnitC = POTENCIALMENTE_LIBRE;
+    } else if (stateUnitC == POTENCIALMENTE_LIBRE) {
+      stateUnitC = LIBRE;
+    }
+    request->send(SPIFFS, "/index.html", String(), false, processor);
+  });
+
+  // Cambiar estado de nodo D
+  server.on("/nodeD/ocupar", HTTP_GET, [](AsyncWebServerRequest *request){
+    stateUnitD = OCUPADO;
+    request->send(SPIFFS, "/index.html", String(), false, processor);
+  });
+  server.on("/nodeD/liberar", HTTP_GET, [](AsyncWebServerRequest *request){
+    if (stateUnitD == OCUPADO) {
+      stateUnitD = POTENCIALMENTE_LIBRE;
+    } else if (stateUnitD == POTENCIALMENTE_LIBRE) {
+      stateUnitD = LIBRE;
     }
     request->send(SPIFFS, "/index.html", String(), false, processor);
   });
@@ -208,8 +274,19 @@ void telegramHandleNewMessages(int numNewMessages) {
     
     // Menu de comandos
     if (text == "/start") {
-      String welcome = "*¡Bienvenido!* 😄\n";
+      String welcome = "*¡Bienvenido al bot de la Biblioteca Nacional!* 😄\n";
+      welcome += "Acá vas a poder consultar el estado de las unidades de estudio.\n";
+      welcome += "Para comenzar, utiliza el comando */estado*.\n";
+      welcome += "Si necesitas ayuda, utiliza el comando */ayuda*.\n";
+      welcome += "Si querés saber más sobre el proyecto, utiliza el comando */info*.\n";
       bot.sendMessage(chat_id, welcome, "Markdown");
+    } else if (text == "/estado") {
+      String estado = "*Estado de las unidades:*\n";
+      estado += "Unidad A: " + stateToString(stateUnitA) + "\n";
+      estado += "Unidad B: " + stateToString(stateUnitB) + "\n";
+      estado += "Unidad C: " + stateToString(stateUnitC) + "\n";
+      estado += "Unidad D: " + stateToString(stateUnitD) + "\n";
+      bot.sendMessage(chat_id, estado, "Markdown");
     } else {
       bot.sendMessage(chat_id, "Comando no reconocido.", "");
     }
