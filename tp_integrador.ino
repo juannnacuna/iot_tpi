@@ -22,7 +22,7 @@
 #define PIN_SENSOR_D_TRIG 26
 #define PIN_SENSOR_D_ECHO 27
 #define DISTANCIA_OCUPADO_MEDIA 15  // cm
-#define DISTANCIA_OCUPADO_MAS_MENOS 5  // cm
+#define DISTANCIA_OCUPADO_MAS_MENOS 15  // cm
 #define SOUND_SPEED 0.034
 
 // Credenciales WiFi
@@ -96,7 +96,7 @@ void callback(char* topic, byte* message, unsigned int length);
 void telegramCheckNewMessages();
 void telegramHandleNewMessages(int numNewMessages);
 void readDistanceAndHandleUnits();
-void readDistanceAndHandleUnit(const String& unitName, int trigPin, int echoPin, long& sensorData, UnitState& state, unsigned long& unitLibreTimeout);
+void readDistanceAndHandleUnit(const String& unitName, int trigPin, int echoPin, long& sensorDistance, UnitState& state, unsigned long& unitLibreTimeout);
 long getUnitDistance(const String& unitName, int trigPin, int echoPin);
 bool distanceMeansOcupado(long distance);
 String stateToString(UnitState state);
@@ -147,23 +147,23 @@ void readDistanceAndHandleUnits() {
   }
 }
 
-void readDataAndHandleUnit(const String& unitName, int trigPin, int echoPin, long& sensorData, UnitState& state, unsigned long& unitLibreTimeout) {
-  sensorData = getUnitData(unitName, trigPin, echoPin);
-  mqttClient.publish(("TPI_ACUNA_BNMM/" + String(NODE_ID) + "/" + unitName + "/data").c_str(), String(sensorData).c_str());
+void readDistanceAndHandleUnit(const String& unitName, int trigPin, int echoPin, long& sensorDistance, UnitState& state, unsigned long& unitLibreTimeout) {
+  sensorDistance = getUnitDistance(unitName, trigPin, echoPin);
+  mqttClient.publish(("TPI_ACUNA_BNMM/" + String(NODE_ID) + "/" + unitName + "/distance").c_str(), String(sensorDistance).c_str());
 
-  if (sensorData == -1) {
+  if (sensorDistance == -1) {
     Serial.printf("Error al leer datos de la unidad %s.\n", unitName.c_str());
     return;
   }
 
-  if ((state == LIBRE) && (dataMeansOcupado(sensorData))) {
+  if ((state == LIBRE) && (distanceMeansOcupado(sensorDistance))) {
     state = OCUPADO;
     Serial.printf("Unidad %s ocupada.\n", unitName.c_str());
     mqttClient.publish(("TPI_ACUNA_BNMM/" + String(NODE_ID) + "/" + unitName + "/state").c_str(), stateToString(state).c_str());
     return;
   }
 
-  if ((state == OCUPADO) && (!dataMeansOcupado(sensorData))) {
+  if ((state == OCUPADO) && (!distanceMeansOcupado(sensorDistance))) {
     state = POTENCIALMENTE_LIBRE;
     unitLibreTimeout = millis();
     Serial.printf("Unidad %s potencialmente libre.\n", unitName.c_str());
@@ -172,7 +172,7 @@ void readDataAndHandleUnit(const String& unitName, int trigPin, int echoPin, lon
   }
 
   if (state == POTENCIALMENTE_LIBRE) {
-    if (dataMeansOcupado(sensorData)) {
+    if (distanceMeansOcupado(sensorDistance)) {
       state = OCUPADO;
       Serial.printf("Unidad %s sigue ocupada.\n", unitName.c_str());
       mqttClient.publish(("TPI_ACUNA_BNMM/" + String(NODE_ID) + "/" + unitName + "/state").c_str(), stateToString(state).c_str());
@@ -186,7 +186,7 @@ void readDataAndHandleUnit(const String& unitName, int trigPin, int echoPin, lon
   }
 }
 
-long getUnitData(const String& unitName, int trigPin, int echoPin) {
+long getUnitDistance(const String& unitName, int trigPin, int echoPin) {
   long duration, distance;
   // Clears the trigPin
   digitalWrite(trigPin, LOW);
@@ -207,7 +207,7 @@ long getUnitData(const String& unitName, int trigPin, int echoPin) {
   return distance;
 }
 
-bool dataMeansOcupado(long distance) {
+bool distanceMeansOcupado(long distance) {
   if (distance <= DISTANCIA_OCUPADO_MEDIA + DISTANCIA_OCUPADO_MAS_MENOS 
     && distance >= DISTANCIA_OCUPADO_MEDIA - DISTANCIA_OCUPADO_MAS_MENOS) {
     return true;
