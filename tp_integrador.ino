@@ -57,7 +57,7 @@ const unsigned long INTERVALO_NOTIFICACION = 5000; // Para enviar notificaciones
 const unsigned long INTERVALO_TRY_CONNECT = 2500; // Para reconectar al broker MQTT
 const unsigned long INTERVALO_LECTURA = 5000; // Para hacer lectura de datos de cada nodo
 const unsigned long INTERVALO_PUBLISH_ESTADO = 20000; // Para publicar datos en el broker MQTT
-const unsigned long POTENCIALMENTE_LIBRE_TIMEOUT = 5000; // ms, tiempo para considerar una unidad como libre después de ser potencialmente libre
+const unsigned long POTENCIALMENTE_LIBRE_TIMEOUT = 30000; // ms, tiempo para considerar una unidad como libre después de ser potencialmente libre
 
 // Variables
 enum UnitState {
@@ -69,10 +69,10 @@ UnitState stateUnitA = POTENCIALMENTE_LIBRE;
 UnitState stateUnitB = POTENCIALMENTE_LIBRE;
 UnitState stateUnitC = POTENCIALMENTE_LIBRE;
 UnitState stateUnitD = POTENCIALMENTE_LIBRE;
-long dataSensorA = 0;
-long dataSensorB = 0;
-long dataSensorC = 0;
-long dataSensorD = 0;
+long dataSensorA = -1;
+long dataSensorB = -1;
+long dataSensorC = -1;
+long dataSensorD = -1;
 unsigned long unitALibreTimeout = 0;
 unsigned long unitBLibreTimeout = 0;
 unsigned long unitCLibreTimeout = 0;
@@ -149,8 +149,8 @@ void handleUnits() {
 void handleUnit(const String& unitName, int trigPin, int echoPin, long& sensorData, UnitState& state, unsigned long& unitLibreTimeout) {
   sensorData = getUnitData(unitName, trigPin, echoPin);
 
-  if (isnan(sensorData)) {
-    Serial.printf("Error al leer distancia de la unidad %s.\n", unitName.c_str());
+  if (sensorData == -1) {
+    Serial.printf("Error al leer datos de la unidad %s.\n", unitName.c_str());
     return;
   }
 
@@ -194,10 +194,13 @@ long getUnitData(const String& unitName, int trigPin, int echoPin) {
   delayMicroseconds(10);
   digitalWrite(trigPin, LOW);
   
-  // Reads the echoPin, returns the sound wave travel time in microseconds
   duration = pulseIn(echoPin, HIGH);
-  distance = (duration * SOUND_SPEED) / 2; // cm
 
+  if (duration <= 0) {
+    return -1;
+  }
+
+  distance = (duration * SOUND_SPEED) / 2; // cm
   Serial.printf("Unidad %s Distance: %ld cm\n", unitName.c_str(), distance);
   return distance;
 }
@@ -273,6 +276,7 @@ void setupServer() {
   server.on("/liberarUnitA", HTTP_GET, [](AsyncWebServerRequest *request){
     if (stateUnitA == OCUPADO) {
       stateUnitA = POTENCIALMENTE_LIBRE;
+      unitALibreTimeout = millis();
     } else if (stateUnitA == POTENCIALMENTE_LIBRE) {
       stateUnitA = LIBRE;
     }
@@ -282,8 +286,8 @@ void setupServer() {
     request->send(200, "text/plain", stateToString(stateUnitA));
   });
   server.on("/dataSensorA", HTTP_GET, [](AsyncWebServerRequest *request){
-    if (isnan(dataSensorA)) {
-      request->send(200, "text/plain", "Error al leer distancia");
+    if (dataSensorA == -1) {
+      request->send(200, "text/plain", "ERROR");
     } else {
       request->send(200, "text/plain", String(dataSensorA));
     }
@@ -297,6 +301,7 @@ void setupServer() {
   server.on("/liberarUnitB", HTTP_GET, [](AsyncWebServerRequest *request){
     if (stateUnitB == OCUPADO) {
       stateUnitB = POTENCIALMENTE_LIBRE;
+      unitBLibreTimeout = millis();
     } else if (stateUnitB == POTENCIALMENTE_LIBRE) {
       stateUnitB = LIBRE;
     }
@@ -306,8 +311,8 @@ void setupServer() {
     request->send(200, "text/plain", stateToString(stateUnitB));
   });
   server.on("/dataSensorB", HTTP_GET, [](AsyncWebServerRequest *request){
-    if (isnan(dataSensorB)) {
-      request->send(200, "text/plain", "Error al leer distancia");
+    if (dataSensorB == -1) {
+      request->send(200, "text/plain", "ERROR");
     } else {
       request->send(200, "text/plain", String(dataSensorB));
     }
@@ -321,6 +326,7 @@ void setupServer() {
   server.on("/liberarUnitC", HTTP_GET, [](AsyncWebServerRequest *request){
     if (stateUnitC == OCUPADO) {
       stateUnitC = POTENCIALMENTE_LIBRE;
+      unitCLibreTimeout = millis();
     } else if (stateUnitC == POTENCIALMENTE_LIBRE) {
       stateUnitC = LIBRE;
     }
@@ -330,8 +336,8 @@ void setupServer() {
     request->send(200, "text/plain", stateToString(stateUnitC));
   });
   server.on("/dataSensorC", HTTP_GET, [](AsyncWebServerRequest *request){
-    if (isnan(dataSensorC)) {
-      request->send(200, "text/plain", "Error al leer distancia");
+    if (dataSensorC == -1) {
+      request->send(200, "text/plain", "ERROR");
     } else {
       request->send(200, "text/plain", String(dataSensorC));
     }
@@ -345,6 +351,7 @@ void setupServer() {
   server.on("/liberarUnitD", HTTP_GET, [](AsyncWebServerRequest *request){
     if (stateUnitD == OCUPADO) {
       stateUnitD = POTENCIALMENTE_LIBRE;
+      unitDLibreTimeout = millis();
     } else if (stateUnitD == POTENCIALMENTE_LIBRE) {
       stateUnitD = LIBRE;
     }
@@ -354,8 +361,8 @@ void setupServer() {
     request->send(200, "text/plain", stateToString(stateUnitD));
   });
   server.on("/dataSensorD", HTTP_GET, [](AsyncWebServerRequest *request){
-    if (isnan(dataSensorD)) {
-      request->send(200, "text/plain", "Error al leer distancia");
+    if (dataSensorD == -1) {
+      request->send(200, "text/plain", "ERROR");
     } else {
       request->send(200, "text/plain", String(dataSensorD));
     }
