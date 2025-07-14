@@ -11,14 +11,19 @@
 #include <SPIFFS.h>
 
 // #define DEBUG_TELEGRAM_RESPONSE_TIME // Comentar/descomentar para habilitar/deshabilitar el debug por serial de tiempo de respuesta con bot de Telegram
-
+#define NODE_ID 37 // Numero de este nodo
 #define PIN_LED 2
-#define PIN_NODE_A 
-#define PIN_NODE_B 
-#define PIN_NODE_C 
-#define PIN_NODE_D 
+#define PIN_SENSOR_A_TRIG 18
+#define PIN_SENSOR_A_ECHO 19
+#define PIN_SENSOR_B_TRIG 34
+#define PIN_SENSOR_B_ECHO 35
+#define PIN_SENSOR_C_TRIG 32
+#define PIN_SENSOR_C_ECHO 33
+#define PIN_SENSOR_D_TRIG 26
+#define PIN_SENSOR_D_ECHO 27
 #define DISTANCIA_OCUPADO_MEDIA 15  // cm
 #define DISTANCIA_OCUPADO_MAS_MENOS 5  // cm
+#define SOUND_SPEED 0.034
 
 // Credenciales WiFi
 const char* ssid = "Losacu 2.4Ghz";
@@ -27,7 +32,7 @@ WiFiClientSecure client;
 
 // Claves Telegram
 #define BOTtoken "7029463441:AAEg9I7_jsPnNKC4XCf769Z-vVodiSp10p0" // @catedra_iot_2025_acuna_integbot
-#define CHAT_ID "4779982027"  // ID del grupo
+#define CHAT_ID "8067384394"  // ID del chat
 UniversalTelegramBot bot(BOTtoken, client);
 
 // Datos del Broker (MQTT)
@@ -50,7 +55,9 @@ AsyncWebServer server(80);
 const unsigned long BOT_REQUEST_DELAY = 1000; // Para mensajes recibidos de Telegram
 const unsigned long INTERVALO_NOTIFICACION = 5000; // Para enviar notificaciones por Telegram
 const unsigned long INTERVALO_TRY_CONNECT = 2500; // Para reconectar al broker MQTT
-const unsigned long INTERVALO_PRINCIPAL = 5000; // Para simulación, para publicación de datos
+const unsigned long INTERVALO_LECTURA = 5000; // Para hacer lectura de datos de cada nodo
+const unsigned long INTERVALO_PUBLISH_ESTADO = 20000; // Para publicar datos en el broker MQTT
+const unsigned long POTENCIALMENTE_LIBRE_TIMEOUT = 5000; // ms, tiempo para considerar una unidad como libre después de ser potencialmente libre
 
 // Variables
 enum UnitState {
@@ -62,6 +69,15 @@ UnitState stateUnitA = POTENCIALMENTE_LIBRE;
 UnitState stateUnitB = POTENCIALMENTE_LIBRE;
 UnitState stateUnitC = POTENCIALMENTE_LIBRE;
 UnitState stateUnitD = POTENCIALMENTE_LIBRE;
+long dataSensorA = 0;
+long dataSensorB = 0;
+long dataSensorC = 0;
+long dataSensorD = 0;
+unsigned long unitALibreTimeout = 0;
+unsigned long unitBLibreTimeout = 0;
+unsigned long unitCLibreTimeout = 0;
+unsigned long unitDLibreTimeout = 0;
+unsigned long lastRead = 0;
 unsigned long lastMsg = 0;
 unsigned long lastTimeBotRan = 0;
 unsigned long lastNotificationTime = 0;
@@ -79,7 +95,9 @@ void reconnectToBroker();
 void callback(char* topic, byte* message, unsigned int length);
 void telegramCheckNewMessages();
 void telegramHandleNewMessages(int numNewMessages);
-void getData();
+void handleUnit(const String& unitName, int trigPin, int echoPin, long& sensorData, UnitState& state, unsigned long& unitLibreTimeout);
+long getUnitData(const String& unitName, int trigPin, int echoPin);
+bool dataMeansOcupado(long distance);
 String stateToString(UnitState state);
 String processor(const String& var);
 
@@ -90,36 +108,106 @@ void setup() {
   spiffsInit();
   setupServer();
   pinMode(PIN_LED, OUTPUT);
+  pinMode(PIN_SENSOR_A_TRIG, OUTPUT);
+  pinMode(PIN_SENSOR_A_ECHO, INPUT);
+  pinMode(PIN_SENSOR_B_TRIG, OUTPUT);
+  pinMode(PIN_SENSOR_B_ECHO, INPUT);
+  pinMode(PIN_SENSOR_C_TRIG, OUTPUT);
+  pinMode(PIN_SENSOR_C_ECHO, INPUT);
+  pinMode(PIN_SENSOR_D_TRIG, OUTPUT);
+  pinMode(PIN_SENSOR_D_ECHO, INPUT);
 }
 
 void loop() {
   mqttVerifyReconnectReceive();
-  getData();
+  handleUnits();
   mqttPublishData();
   telegramCheckNewMessages();
   delay(100); // Delay para no saturar el loop
 }
 
 void mqttPublishData() {
-  if ((millis() - lastMsg) >= INTERVALO_PRINCIPAL) {
-    if (mqttClient.connected()) {
-        lastMsg = millis();
-        mqttClient.publish("TPI_ACUNA_BNA/37", msg);
+  if ((mqttClient.connected()) && (millis() - lastMsg) >= INTERVALO_PUBLISH_ESTADO) {
+    mqttClient.publish(("TPI_ACUNA_BNA/" + String(NODE_ID) + "/A").c_str(), stateToString(stateUnitA).c_str());
+    mqttClient.publish(("TPI_ACUNA_BNA/" + String(NODE_ID) + "/B").c_str(), stateToString(stateUnitB).c_str());
+    mqttClient.publish(("TPI_ACUNA_BNA/" + String(NODE_ID) + "/C").c_str(), stateToString(stateUnitC).c_str());
+    mqttClient.publish(("TPI_ACUNA_BNA/" + String(NODE_ID) + "/D").c_str(), stateToString(stateUnitD).c_str());
+    lastMsg = millis();
+  }
+}
+
+void handleUnits() {
+  if ((millis() - lastRead) >= INTERVALO_LECTURA) {
+    handleUnit("A", PIN_SENSOR_A_TRIG, PIN_SENSOR_A_ECHO, dataSensorA, stateUnitA, unitALibreTimeout);
+    handleUnit("B", PIN_SENSOR_B_TRIG, PIN_SENSOR_B_ECHO, dataSensorB, stateUnitB, unitBLibreTimeout);
+    handleUnit("C", PIN_SENSOR_C_TRIG, PIN_SENSOR_C_ECHO, dataSensorC, stateUnitC, unitCLibreTimeout);
+    handleUnit("D", PIN_SENSOR_D_TRIG, PIN_SENSOR_D_ECHO, dataSensorD, stateUnitD, unitDLibreTimeout);
+    lastRead = millis();
+  }
+}
+
+void handleUnit(const String& unitName, int trigPin, int echoPin, long& sensorData, UnitState& state, unsigned long& unitLibreTimeout) {
+  sensorData = getUnitData(unitName, trigPin, echoPin);
+
+  if (isnan(sensorData)) {
+    Serial.printf("Error al leer distancia de la unidad %s.\n", unitName.c_str());
+    return;
+  }
+
+  if ((state == LIBRE) && (dataMeansOcupado(sensorData))) {
+    state = OCUPADO;
+    Serial.printf("Unidad %s ocupada.\n", unitName.c_str());
+    mqttClient.publish(("TPI_ACUNA_BNA/" + String(NODE_ID) + "/" + unitName).c_str(), stateToString(state).c_str());
+    return;
+  }
+
+  if ((state == OCUPADO) && (!dataMeansOcupado(sensorData))) {
+    state = POTENCIALMENTE_LIBRE;
+    unitLibreTimeout = millis();
+    Serial.printf("Unidad %s potencialmente libre.\n", unitName.c_str());
+    mqttClient.publish(("TPI_ACUNA_BNA/" + String(NODE_ID) + "/" + unitName).c_str(), stateToString(state).c_str());
+    return;
+  }
+
+  if (state == POTENCIALMENTE_LIBRE) {
+    if (dataMeansOcupado(sensorData)) {
+      state = OCUPADO;
+      Serial.printf("Unidad %s sigue ocupada.\n", unitName.c_str());
+      mqttClient.publish(("TPI_ACUNA_BNA/" + String(NODE_ID) + "/" + unitName).c_str(), stateToString(state).c_str());
+      return;
+    }
+    if ((millis() - unitLibreTimeout) >= POTENCIALMENTE_LIBRE_TIMEOUT) {
+      state = LIBRE;
+      Serial.printf("Unidad %s libre.\n", unitName.c_str());
+      mqttClient.publish(("TPI_ACUNA_BNA/" + String(NODE_ID) + "/" + unitName).c_str(), stateToString(state).c_str());
     }
   }
 }
 
-// Acá iría la lógica para obtener los datos de los sensores o del estado de las unidades
-void getData() {
-  // REHACER ESTO
-  if ((millis() - lastMsg) >= INTERVALO_PRINCIPAL) {
-    Serial.println("Obteniendo datos...");
-    Serial.println("Estado de las unidades:");
-    Serial.println("Unidad A: " + stateToString(stateUnitA));
-    Serial.println("Unidad B: " + stateToString(stateUnitB));
-    Serial.println("Unidad C: " + stateToString(stateUnitC));
-    Serial.println("Unidad D: " + stateToString(stateUnitD));
+long getUnitData(const String& unitName, int trigPin, int echoPin) {
+  long duration, distance;
+  // Clears the trigPin
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  // Sets the trigPin on HIGH state for 10 micro seconds
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  
+  // Reads the echoPin, returns the sound wave travel time in microseconds
+  duration = pulseIn(echoPin, HIGH);
+  distance = (duration * SOUND_SPEED) / 2; // cm
+
+  Serial.printf("Unidad %s Distance: %ld cm\n", unitName.c_str(), distance);
+  return distance;
+}
+
+bool dataMeansOcupado(long distance) {
+  if (distance <= DISTANCIA_OCUPADO_MEDIA + DISTANCIA_OCUPADO_MAS_MENOS 
+    && distance >= DISTANCIA_OCUPADO_MEDIA - DISTANCIA_OCUPADO_MAS_MENOS) {
+    return true;
   }
+  return false;
 }
 
 void setupMqtt() {
@@ -151,16 +239,16 @@ String stateToString(UnitState state) {
 // Processor function for updating variables in HTML
 String processor(const String& var){
   Serial.println(var);
-  if (var == "STATE_NODE_A") {
+  if (var == "STATE_UNIT_A") {
     return stateToString(stateUnitA);
   }
-  if (var == "STATE_NODE_B") {
+  if (var == "STATE_UNIT_B") {
     return stateToString(stateUnitB);
   }
-  if (var == "STATE_NODE_C") {
+  if (var == "STATE_UNIT_C") {
     return stateToString(stateUnitC);
   }
-  if (var == "STATE_NODE_D") {
+  if (var == "STATE_UNIT_D") {
     return stateToString(stateUnitD);
   }
   return String();
@@ -178,11 +266,11 @@ void setupServer() {
   });
 
   // Cambiar estado de nodo A
-  server.on("/ocuparNodeA", HTTP_GET, [](AsyncWebServerRequest *request){
+  server.on("/ocuparUnitA", HTTP_GET, [](AsyncWebServerRequest *request){
     stateUnitA = OCUPADO;
     request->send(SPIFFS, "/index.html", String(), false, processor);
   });
-  server.on("/liberarNodeA", HTTP_GET, [](AsyncWebServerRequest *request){
+  server.on("/liberarUnitA", HTTP_GET, [](AsyncWebServerRequest *request){
     if (stateUnitA == OCUPADO) {
       stateUnitA = POTENCIALMENTE_LIBRE;
     } else if (stateUnitA == POTENCIALMENTE_LIBRE) {
@@ -190,24 +278,23 @@ void setupServer() {
     }
     request->send(SPIFFS, "/index.html", String(), false, processor);
   });
-  server.on("/statusNodeA", HTTP_GET, [](AsyncWebServerRequest *request){
+  server.on("/stateUnitA", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(200, "text/plain", stateToString(stateUnitA));
   });
-  server.on("/dataNodeA", HTTP_GET, [](AsyncWebServerRequest *request){
-    float distance = NAN; // Aquí deberías obtener la distancia real del sensor
-    if (isnan(distance)) {
+  server.on("/dataSensorA", HTTP_GET, [](AsyncWebServerRequest *request){
+    if (isnan(dataSensorA)) {
       request->send(200, "text/plain", "Error al leer distancia");
     } else {
-      request->send(200, "text/plain", String(distance));
+      request->send(200, "text/plain", String(dataSensorA));
     }
   });
 
   // Cambiar estado de nodo B
-  server.on("/ocuparNodeB", HTTP_GET, [](AsyncWebServerRequest *request){
+  server.on("/ocuparUnitB", HTTP_GET, [](AsyncWebServerRequest *request){
     stateUnitB = OCUPADO;
     request->send(SPIFFS, "/index.html", String(), false, processor);
   });
-  server.on("/liberarNodeB", HTTP_GET, [](AsyncWebServerRequest *request){
+  server.on("/liberarUnitB", HTTP_GET, [](AsyncWebServerRequest *request){
     if (stateUnitB == OCUPADO) {
       stateUnitB = POTENCIALMENTE_LIBRE;
     } else if (stateUnitB == POTENCIALMENTE_LIBRE) {
@@ -215,24 +302,23 @@ void setupServer() {
     }
     request->send(SPIFFS, "/index.html", String(), false, processor);
   });
-  server.on("/statusNodeB", HTTP_GET, [](AsyncWebServerRequest *request){
+  server.on("/stateUnitB", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(200, "text/plain", stateToString(stateUnitB));
   });
-  server.on("/dataNodeB", HTTP_GET, [](AsyncWebServerRequest *request){
-    float distance = NAN; // Aquí deberías obtener la distancia real del sensor
-    if (isnan(distance)) {
+  server.on("/dataSensorB", HTTP_GET, [](AsyncWebServerRequest *request){
+    if (isnan(dataSensorB)) {
       request->send(200, "text/plain", "Error al leer distancia");
     } else {
-      request->send(200, "text/plain", String(distance));
+      request->send(200, "text/plain", String(dataSensorB));
     }
   });
 
   // Cambiar estado de nodo C
-  server.on("/ocuparNodeC", HTTP_GET, [](AsyncWebServerRequest *request){
+  server.on("/ocuparUnitC", HTTP_GET, [](AsyncWebServerRequest *request){
     stateUnitC = OCUPADO;
     request->send(SPIFFS, "/index.html", String(), false, processor);
   });
-  server.on("/liberarNodeC", HTTP_GET, [](AsyncWebServerRequest *request){
+  server.on("/liberarUnitC", HTTP_GET, [](AsyncWebServerRequest *request){
     if (stateUnitC == OCUPADO) {
       stateUnitC = POTENCIALMENTE_LIBRE;
     } else if (stateUnitC == POTENCIALMENTE_LIBRE) {
@@ -240,24 +326,23 @@ void setupServer() {
     }
     request->send(SPIFFS, "/index.html", String(), false, processor);
   });
-  server.on("/statusNodeC", HTTP_GET, [](AsyncWebServerRequest *request){
+  server.on("/stateUnitC", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(200, "text/plain", stateToString(stateUnitC));
   });
-  server.on("/dataNodeC", HTTP_GET, [](AsyncWebServerRequest *request){
-    float distance = NAN; // Aquí deberías obtener la distancia real del sensor
-    if (isnan(distance)) {
+  server.on("/dataSensorC", HTTP_GET, [](AsyncWebServerRequest *request){
+    if (isnan(dataSensorC)) {
       request->send(200, "text/plain", "Error al leer distancia");
     } else {
-      request->send(200, "text/plain", String(distance));
+      request->send(200, "text/plain", String(dataSensorC));
     }
   });
 
   // Cambiar estado de nodo D
-  server.on("/ocuparNodeD", HTTP_GET, [](AsyncWebServerRequest *request){
+  server.on("/ocuparUnitD", HTTP_GET, [](AsyncWebServerRequest *request){
     stateUnitD = OCUPADO;
     request->send(SPIFFS, "/index.html", String(), false, processor);
   });
-  server.on("/liberarNodeD", HTTP_GET, [](AsyncWebServerRequest *request){
+  server.on("/liberarUnitD", HTTP_GET, [](AsyncWebServerRequest *request){
     if (stateUnitD == OCUPADO) {
       stateUnitD = POTENCIALMENTE_LIBRE;
     } else if (stateUnitD == POTENCIALMENTE_LIBRE) {
@@ -265,15 +350,14 @@ void setupServer() {
     }
     request->send(SPIFFS, "/index.html", String(), false, processor);
   });
-  server.on("/statusNodeD", HTTP_GET, [](AsyncWebServerRequest *request){
+  server.on("/stateUnitD", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(200, "text/plain", stateToString(stateUnitD));
   });
-  server.on("/dataNodeD", HTTP_GET, [](AsyncWebServerRequest *request){
-    float distance = NAN; // Aquí deberías obtener la distancia real del sensor
-    if (isnan(distance)) {
+  server.on("/dataSensorD", HTTP_GET, [](AsyncWebServerRequest *request){
+    if (isnan(dataSensorD)) {
       request->send(200, "text/plain", "Error al leer distancia");
     } else {
-      request->send(200, "text/plain", String(distance));
+      request->send(200, "text/plain", String(dataSensorD));
     }
   });
 
@@ -375,7 +459,7 @@ void reconnectToBroker() {
     if (mqttClient.connect(MQTT_CLIENT_NAME)) { // OJO credenciales MOSQUITTO MQTT_USER, MQTT_PASS
       Serial.println("connected");
       // Subscribe to topics
-      mqttClient.subscribe("TPI_ACUNA_BNA/37");
+      mqttClient.subscribe(("TPI_ACUNA_BNA/" + String(NODE_ID)).c_str()); // Suscribirse al topic del nodo, pero no a todos los subtopicos
     } else {
       Serial.print("failed, rc=");
       Serial.print(mqttClient.state());
@@ -394,6 +478,6 @@ void callback(char* topic, byte* message, unsigned int length) {
   Serial.println();
 
   // Lógica de algo
-  if (String(topic) == "TPI_ACUNA_BNA/37") {
+  if (String(topic) == "TPI_ACUNA_BNA/" + String(NODE_ID)) {
   }
 }
