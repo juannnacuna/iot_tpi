@@ -426,5 +426,52 @@
                 "file": "/usr/src/node-red/node_modules/@node-red/nodes/core/storage/23-watch.js"
             }
         }
+    },
+    "node-red-contrib-influxdb": {
+        "name": "node-red-contrib-influxdb",
+        "version": "0.7.0",
+        "local": true,
+        "user": true,
+        "nodes": {
+            "influxdb": {
+                "name": "influxdb",
+                "types": [
+                    "influxdb",
+                    "influxdb out",
+                    "influxdb batch",
+                    "influxdb in"
+                ],
+                "enabled": true,
+                "local": true,
+                "user": false,
+                "module": "node-red-contrib-influxdb",
+                "file": "/data/node_modules/node-red-contrib-influxdb/influxdb.js"
+            }
+        }
+    },
+    "node-red-contrib-telegrambot": {
+        "name": "node-red-contrib-telegrambot",
+        "version": "16.3.2",
+        "local": true,
+        "user": true,
+        "nodes": {
+            "telegrambot": {
+                "name": "telegrambot",
+                "types": [
+                    "telegram bot",
+                    "telegram receiver",
+                    "telegram command",
+                    "telegram event",
+                    "telegram sender",
+                    "telegram reply",
+                    "telegram control"
+                ],
+                "enabled": true,
+                "local": true,
+                "user": false,
+                "module": "node-red-contrib-telegrambot",
+                "file": "/data/node_modules/node-red-contrib-telegrambot/telegrambot/99-telegrambot.js"
+            }
+        }
     }
 }

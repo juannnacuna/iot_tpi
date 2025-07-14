@@ -14,7 +14,7 @@
       <tr>
         <td>
           <h2>Unidad 37A</h2>
-          <p>Distancia (cm): <span id="dataSensorA"></span></p>
+          <p>Distancia (cm): <span id="distanceSensorA"></span></p>
           <p>Estado: <strong id="stateUnitA">%STATE_UNIT_A%</strong></p>
           <p>
             <a href="ocuparUnitA"><button class="button">OCUPAR</button></a>
@@ -23,7 +23,7 @@
         </td>
         <td>
           <h2>Unidad 37B</h2>
-          <p>Distancia (cm): <span id="dataSensorB"></span></p>
+          <p>Distancia (cm): <span id="distanceSensorB"></span></p>
           <p>Estado: <strong id="stateUnitB">%STATE_UNIT_B%</strong></p>
           <p>
             <a href="ocuparUnitB"><button class="button">OCUPAR</button></a>
@@ -34,7 +34,7 @@
       <tr>
         <td>
           <h2>Unidad 37C</h2>
-          <p>Distancia (cm): <span id="dataSensorC"></span></p>
+          <p>Distancia (cm): <span id="distanceSensorC"></span></p>
           <p>Estado: <strong id="stateUnitC">%STATE_UNIT_C%</strong></p>
           <p>
             <a href="ocuparUnitC"><button class="button">OCUPAR</button></a>
@@ -43,7 +43,7 @@
         </td>
         <td>
           <h2>Unidad 37D</h2>
-          <p>Distancia (cm): <span id="dataSensorD"></span></p>
+          <p>Distancia (cm): <span id="distanceSensorD"></span></p>
           <p>Estado: <strong id="stateUnitD">%STATE_UNIT_D%</strong></p>
           <p>
             <a href="ocuparUnitD"><button class="button">OCUPAR</button></a>
@@ -66,40 +66,40 @@
     <!-- Script para actualizar informacion cada 5 segundos -->
     <script>
       setInterval(function() {
-        fetch('/dataSensorA')
+        fetch('/distanceSensorA')
           .then(response => response.text())
           .then(data => {
-            document.getElementById("dataSensorA").innerHTML = data;
+            document.getElementById("distanceSensorA").innerHTML = data;
           });
         fetch('/stateUnitA')
           .then(response => response.text())
           .then(data => {
             document.getElementById("stateUnitA").innerHTML = data;
           });
-        fetch('/dataSensorB')
+        fetch('/distanceSensorB')
           .then(response => response.text())
           .then(data => {
-            document.getElementById("dataSensorB").innerHTML = data;
+            document.getElementById("distanceSensorB").innerHTML = data;
           });
         fetch('/stateUnitB')
           .then(response => response.text())
           .then(data => {
             document.getElementById("stateUnitB").innerHTML = data;
           });
-        fetch('/dataSensorC')
+        fetch('/distanceSensorC')
           .then(response => response.text())
           .then(data => {
-            document.getElementById("dataSensorC").innerHTML = data;
+            document.getElementById("distanceSensorC").innerHTML = data;
           });
         fetch('/stateUnitC')
           .then(response => response.text())
           .then(data => {
             document.getElementById("stateUnitC").innerHTML = data;
           });
-        fetch('/dataSensorD')
+        fetch('/distanceSensorD')
           .then(response => response.text())
           .then(data => {
-            document.getElementById("dataSensorD").innerHTML = data;
+            document.getElementById("distanceSensorD").innerHTML = data;
           });
         fetch('/stateUnitD')
           .then(response => response.text())

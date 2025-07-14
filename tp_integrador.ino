@@ -69,10 +69,10 @@ UnitState stateUnitA = POTENCIALMENTE_LIBRE;
 UnitState stateUnitB = POTENCIALMENTE_LIBRE;
 UnitState stateUnitC = POTENCIALMENTE_LIBRE;
 UnitState stateUnitD = POTENCIALMENTE_LIBRE;
-long dataSensorA = -1;
-long dataSensorB = -1;
-long dataSensorC = -1;
-long dataSensorD = -1;
+long distanceSensorA = -1;
+long distanceSensorB = -1;
+long distanceSensorC = -1;
+long distanceSensorD = -1;
 unsigned long unitALibreTimeout = 0;
 unsigned long unitBLibreTimeout = 0;
 unsigned long unitCLibreTimeout = 0;
@@ -95,9 +95,10 @@ void reconnectToBroker();
 void callback(char* topic, byte* message, unsigned int length);
 void telegramCheckNewMessages();
 void telegramHandleNewMessages(int numNewMessages);
-void handleUnit(const String& unitName, int trigPin, int echoPin, long& sensorData, UnitState& state, unsigned long& unitLibreTimeout);
-long getUnitData(const String& unitName, int trigPin, int echoPin);
-bool dataMeansOcupado(long distance);
+void readDistanceAndHandleUnits();
+void readDistanceAndHandleUnit(const String& unitName, int trigPin, int echoPin, long& sensorData, UnitState& state, unsigned long& unitLibreTimeout);
+long getUnitDistance(const String& unitName, int trigPin, int echoPin);
+bool distanceMeansOcupado(long distance);
 String stateToString(UnitState state);
 String processor(const String& var);
 
@@ -120,7 +121,7 @@ void setup() {
 
 void loop() {
   mqttVerifyReconnectReceive();
-  handleUnits();
+  readDistanceAndHandleUnits();
   mqttPublishData();
   telegramCheckNewMessages();
   delay(100); // Delay para no saturar el loop
@@ -128,26 +129,27 @@ void loop() {
 
 void mqttPublishData() {
   if ((mqttClient.connected()) && (millis() - lastMsg) >= INTERVALO_PUBLISH_ESTADO) {
-    mqttClient.publish(("TPI_ACUNA_BNA/" + String(NODE_ID) + "/A").c_str(), stateToString(stateUnitA).c_str());
-    mqttClient.publish(("TPI_ACUNA_BNA/" + String(NODE_ID) + "/B").c_str(), stateToString(stateUnitB).c_str());
-    mqttClient.publish(("TPI_ACUNA_BNA/" + String(NODE_ID) + "/C").c_str(), stateToString(stateUnitC).c_str());
-    mqttClient.publish(("TPI_ACUNA_BNA/" + String(NODE_ID) + "/D").c_str(), stateToString(stateUnitD).c_str());
+    mqttClient.publish(("TPI_ACUNA_BNMM/" + String(NODE_ID) + "/A/state").c_str(), stateToString(stateUnitA).c_str());
+    mqttClient.publish(("TPI_ACUNA_BNMM/" + String(NODE_ID) + "/B/state").c_str(), stateToString(stateUnitB).c_str());
+    mqttClient.publish(("TPI_ACUNA_BNMM/" + String(NODE_ID) + "/C/state").c_str(), stateToString(stateUnitC).c_str());
+    mqttClient.publish(("TPI_ACUNA_BNMM/" + String(NODE_ID) + "/D/state").c_str(), stateToString(stateUnitD).c_str());
     lastMsg = millis();
   }
 }
 
-void handleUnits() {
+void readDistanceAndHandleUnits() {
   if ((millis() - lastRead) >= INTERVALO_LECTURA) {
-    handleUnit("A", PIN_SENSOR_A_TRIG, PIN_SENSOR_A_ECHO, dataSensorA, stateUnitA, unitALibreTimeout);
-    handleUnit("B", PIN_SENSOR_B_TRIG, PIN_SENSOR_B_ECHO, dataSensorB, stateUnitB, unitBLibreTimeout);
-    handleUnit("C", PIN_SENSOR_C_TRIG, PIN_SENSOR_C_ECHO, dataSensorC, stateUnitC, unitCLibreTimeout);
-    handleUnit("D", PIN_SENSOR_D_TRIG, PIN_SENSOR_D_ECHO, dataSensorD, stateUnitD, unitDLibreTimeout);
+    readDistanceAndHandleUnit("A", PIN_SENSOR_A_TRIG, PIN_SENSOR_A_ECHO, distanceSensorA, stateUnitA, unitALibreTimeout);
+    readDistanceAndHandleUnit("B", PIN_SENSOR_B_TRIG, PIN_SENSOR_B_ECHO, distanceSensorB, stateUnitB, unitBLibreTimeout);
+    readDistanceAndHandleUnit("C", PIN_SENSOR_C_TRIG, PIN_SENSOR_C_ECHO, distanceSensorC, stateUnitC, unitCLibreTimeout);
+    readDistanceAndHandleUnit("D", PIN_SENSOR_D_TRIG, PIN_SENSOR_D_ECHO, distanceSensorD, stateUnitD, unitDLibreTimeout);
     lastRead = millis();
   }
 }
 
-void handleUnit(const String& unitName, int trigPin, int echoPin, long& sensorData, UnitState& state, unsigned long& unitLibreTimeout) {
+void readDataAndHandleUnit(const String& unitName, int trigPin, int echoPin, long& sensorData, UnitState& state, unsigned long& unitLibreTimeout) {
   sensorData = getUnitData(unitName, trigPin, echoPin);
+  mqttClient.publish(("TPI_ACUNA_BNMM/" + String(NODE_ID) + "/" + unitName + "/data").c_str(), String(sensorData).c_str());
 
   if (sensorData == -1) {
     Serial.printf("Error al leer datos de la unidad %s.\n", unitName.c_str());
@@ -157,7 +159,7 @@ void handleUnit(const String& unitName, int trigPin, int echoPin, long& sensorDa
   if ((state == LIBRE) && (dataMeansOcupado(sensorData))) {
     state = OCUPADO;
     Serial.printf("Unidad %s ocupada.\n", unitName.c_str());
-    mqttClient.publish(("TPI_ACUNA_BNA/" + String(NODE_ID) + "/" + unitName).c_str(), stateToString(state).c_str());
+    mqttClient.publish(("TPI_ACUNA_BNMM/" + String(NODE_ID) + "/" + unitName + "/state").c_str(), stateToString(state).c_str());
     return;
   }
 
@@ -165,7 +167,7 @@ void handleUnit(const String& unitName, int trigPin, int echoPin, long& sensorDa
     state = POTENCIALMENTE_LIBRE;
     unitLibreTimeout = millis();
     Serial.printf("Unidad %s potencialmente libre.\n", unitName.c_str());
-    mqttClient.publish(("TPI_ACUNA_BNA/" + String(NODE_ID) + "/" + unitName).c_str(), stateToString(state).c_str());
+    mqttClient.publish(("TPI_ACUNA_BNMM/" + String(NODE_ID) + "/" + unitName + "/state").c_str(), stateToString(state).c_str());
     return;
   }
 
@@ -173,13 +175,13 @@ void handleUnit(const String& unitName, int trigPin, int echoPin, long& sensorDa
     if (dataMeansOcupado(sensorData)) {
       state = OCUPADO;
       Serial.printf("Unidad %s sigue ocupada.\n", unitName.c_str());
-      mqttClient.publish(("TPI_ACUNA_BNA/" + String(NODE_ID) + "/" + unitName).c_str(), stateToString(state).c_str());
+      mqttClient.publish(("TPI_ACUNA_BNMM/" + String(NODE_ID) + "/" + unitName + "/state").c_str(), stateToString(state).c_str());
       return;
     }
     if ((millis() - unitLibreTimeout) >= POTENCIALMENTE_LIBRE_TIMEOUT) {
       state = LIBRE;
       Serial.printf("Unidad %s libre.\n", unitName.c_str());
-      mqttClient.publish(("TPI_ACUNA_BNA/" + String(NODE_ID) + "/" + unitName).c_str(), stateToString(state).c_str());
+      mqttClient.publish(("TPI_ACUNA_BNMM/" + String(NODE_ID) + "/" + unitName + "/state").c_str(), stateToString(state).c_str());
     }
   }
 }
@@ -285,11 +287,11 @@ void setupServer() {
   server.on("/stateUnitA", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(200, "text/plain", stateToString(stateUnitA));
   });
-  server.on("/dataSensorA", HTTP_GET, [](AsyncWebServerRequest *request){
-    if (dataSensorA == -1) {
+  server.on("/distanceSensorA", HTTP_GET, [](AsyncWebServerRequest *request){
+    if (distanceSensorA == -1) {
       request->send(200, "text/plain", "ERROR");
     } else {
-      request->send(200, "text/plain", String(dataSensorA));
+      request->send(200, "text/plain", String(distanceSensorA));
     }
   });
 
@@ -310,11 +312,11 @@ void setupServer() {
   server.on("/stateUnitB", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(200, "text/plain", stateToString(stateUnitB));
   });
-  server.on("/dataSensorB", HTTP_GET, [](AsyncWebServerRequest *request){
-    if (dataSensorB == -1) {
+  server.on("/distanceSensorB", HTTP_GET, [](AsyncWebServerRequest *request){
+    if (distanceSensorB == -1) {
       request->send(200, "text/plain", "ERROR");
     } else {
-      request->send(200, "text/plain", String(dataSensorB));
+      request->send(200, "text/plain", String(distanceSensorB));
     }
   });
 
@@ -335,11 +337,11 @@ void setupServer() {
   server.on("/stateUnitC", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(200, "text/plain", stateToString(stateUnitC));
   });
-  server.on("/dataSensorC", HTTP_GET, [](AsyncWebServerRequest *request){
-    if (dataSensorC == -1) {
+  server.on("/distanceSensorC", HTTP_GET, [](AsyncWebServerRequest *request){
+    if (distanceSensorC == -1) {
       request->send(200, "text/plain", "ERROR");
     } else {
-      request->send(200, "text/plain", String(dataSensorC));
+      request->send(200, "text/plain", String(distanceSensorC));
     }
   });
 
@@ -360,11 +362,11 @@ void setupServer() {
   server.on("/stateUnitD", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(200, "text/plain", stateToString(stateUnitD));
   });
-  server.on("/dataSensorD", HTTP_GET, [](AsyncWebServerRequest *request){
-    if (dataSensorD == -1) {
+  server.on("/distanceSensorD", HTTP_GET, [](AsyncWebServerRequest *request){
+    if (distanceSensorD == -1) {
       request->send(200, "text/plain", "ERROR");
     } else {
-      request->send(200, "text/plain", String(dataSensorD));
+      request->send(200, "text/plain", String(distanceSensorD));
     }
   });
 
@@ -422,10 +424,10 @@ void telegramHandleNewMessages(int numNewMessages) {
       bot.sendMessage(chat_id, welcome, "Markdown");
     } else if (text == "/estado") {
       String estado = "*Estado de las unidades:*\n";
-      estado += "Unidad A: " + stateToString(stateUnitA) + "\n";
-      estado += "Unidad B: " + stateToString(stateUnitB) + "\n";
-      estado += "Unidad C: " + stateToString(stateUnitC) + "\n";
-      estado += "Unidad D: " + stateToString(stateUnitD) + "\n";
+      estado += "Unidad " + String(NODE_ID) + "A: " + stateToString(stateUnitA) + "\n";
+      estado += "Unidad " + String(NODE_ID) + "B: " + stateToString(stateUnitB) + "\n";
+      estado += "Unidad " + String(NODE_ID) + "C: " + stateToString(stateUnitC) + "\n";
+      estado += "Unidad " + String(NODE_ID) + "D: " + stateToString(stateUnitD) + "\n";
       bot.sendMessage(chat_id, estado, "Markdown");
     } else {
       bot.sendMessage(chat_id, "Comando no reconocido.", "");
@@ -466,7 +468,7 @@ void reconnectToBroker() {
     if (mqttClient.connect(MQTT_CLIENT_NAME)) { // OJO credenciales MOSQUITTO MQTT_USER, MQTT_PASS
       Serial.println("connected");
       // Subscribe to topics
-      mqttClient.subscribe(("TPI_ACUNA_BNA/" + String(NODE_ID)).c_str()); // Suscribirse al topic del nodo, pero no a todos los subtopicos
+      mqttClient.subscribe(("TPI_ACUNA_BNMM/" + String(NODE_ID)).c_str()); // Suscribirse al topic del nodo, pero no a todos los subtopicos
     } else {
       Serial.print("failed, rc=");
       Serial.print(mqttClient.state());
@@ -485,6 +487,6 @@ void callback(char* topic, byte* message, unsigned int length) {
   Serial.println();
 
   // Lógica de algo
-  if (String(topic) == "TPI_ACUNA_BNA/" + String(NODE_ID)) {
+  if (String(topic) == "TPI_ACUNA_BNMM/" + String(NODE_ID)) {
   }
 }
