@@ -4,7 +4,9 @@
     "version": "0.0.1",
     "private": true,
     "dependencies": {
+        "node-red-contrib-image-tools": "~2.1.1",
         "node-red-contrib-influxdb": "~0.7.0",
-        "node-red-contrib-telegrambot": "~16.3.2"
+        "node-red-contrib-telegrambot": "~16.3.2",
+        "node-red-node-annotate-image": "~0.2.0"
     }
 }

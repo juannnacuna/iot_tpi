@@ -4,13 +4,11 @@
 #include <ESP8266WiFi.h>
 #endif
 #include <WiFiClientSecure.h>
-#include <UniversalTelegramBot.h>   // https://github.com/witnessmenow/Universal-Arduino-Telegram-Bot
 #include <ArduinoJson.h>
 #include <PubSubClient.h>
 #include <ESPAsyncWebServer.h>
 #include <SPIFFS.h>
 
-// #define DEBUG_TELEGRAM_RESPONSE_TIME // Comentar/descomentar para habilitar/deshabilitar el debug por serial de tiempo de respuesta con bot de Telegram
 #define NODE_ID 37 // Numero de este nodo
 #define PIN_LED 2
 #define PIN_SENSOR_A_TRIG 18
@@ -30,11 +28,6 @@ const char* ssid = "Losacu 2.4Ghz";
 const char* password = "abu9275561";
 WiFiClientSecure client;
 
-// Claves Telegram
-#define BOTtoken "7029463441:AAEg9I7_jsPnNKC4XCf769Z-vVodiSp10p0" // @catedra_iot_2025_acuna_integbot
-#define CHAT_ID "8067384394"  // ID del chat
-UniversalTelegramBot bot(BOTtoken, client);
-
 // Datos del Broker (MQTT)
 const char* MQTT_BROKER_ADRESS = "broker.mqtt.cool"; // Otra opcion "test.mosquitto.org";
 const uint16_t MQTT_PORT = 1883;
@@ -52,8 +45,6 @@ int value = 0;
 AsyncWebServer server(80);
 
 // Constantes
-const unsigned long BOT_REQUEST_DELAY = 1000; // Para mensajes recibidos de Telegram
-const unsigned long INTERVALO_NOTIFICACION = 5000; // Para enviar notificaciones por Telegram
 const unsigned long INTERVALO_TRY_CONNECT = 2500; // Para reconectar al broker MQTT
 const unsigned long INTERVALO_LECTURA = 5000; // Para hacer lectura de datos de cada nodo
 const unsigned long INTERVALO_PUBLISH_ESTADO = 20000; // Para publicar datos en el broker MQTT
@@ -79,9 +70,6 @@ unsigned long unitCLibreTimeout = 0;
 unsigned long unitDLibreTimeout = 0;
 unsigned long lastRead = 0;
 unsigned long lastMsg = 0;
-unsigned long lastTimeBotRan = 0;
-unsigned long lastNotificationTime = 0;
-unsigned long timerAux = 0;
 unsigned long lastConnectTry = 0;
 
 // Prototipos de funciones
@@ -93,8 +81,6 @@ void mqttPublishData();
 void mqttVerifyReconnectReceive();
 void reconnectToBroker();
 void callback(char* topic, byte* message, unsigned int length);
-void telegramCheckNewMessages();
-void telegramHandleNewMessages(int numNewMessages);
 void readDistanceAndHandleUnits();
 void readDistanceAndHandleUnit(const String& unitName, int trigPin, int echoPin, long& sensorDistance, UnitState& state, unsigned long& unitLibreTimeout);
 long getUnitDistance(const String& unitName, int trigPin, int echoPin);
@@ -123,7 +109,6 @@ void loop() {
   mqttVerifyReconnectReceive();
   readDistanceAndHandleUnits();
   mqttPublishData();
-  telegramCheckNewMessages();
   delay(100); // Delay para no saturar el loop
 }
 
@@ -374,67 +359,6 @@ void setupServer() {
   Serial.println("HTTP server started");
 }
 
-void telegramCheckNewMessages() {
-  if ((millis() - lastTimeBotRan) >= BOT_REQUEST_DELAY)  {
-    #ifdef DEBUG_TELEGRAM_RESPONSE_TIME
-      Serial.printf("Checkeando si hay mensajes... ");
-      timerAux = millis();
-    #endif
-      int numNewMessages = bot.getUpdates(bot.last_message_received + 1);
-    #ifdef DEBUG_TELEGRAM_RESPONSE_TIME
-      Serial.printf("Hay %d mensajes nuevos. (%d ms)\n", numNewMessages, millis()-timerAux);
-    #endif
-    while(numNewMessages) {
-      Serial.println("Mensaje recibido");
-      telegramHandleNewMessages(numNewMessages);
-      #ifdef DEBUG_TELEGRAM_RESPONSE_TIME
-        Serial.printf("Checkeando si hay mensajes... ");
-        timerAux = millis();
-      #endif
-      numNewMessages = bot.getUpdates(bot.last_message_received + 1);
-      #ifdef DEBUG_TELEGRAM_RESPONSE_TIME
-        Serial.printf("Hay %d mensajes nuevos. (%d ms)\n", numNewMessages, millis()-timerAux);
-      #endif
-    }
-    lastTimeBotRan = millis();
-  }
-}
-
-void telegramHandleNewMessages(int numNewMessages) {
-  Serial.printf("Manejando mensaje nuevo.\n");
-  for (int i=0; i<numNewMessages; i++) {
-    // Checkeo si el mensaje viene de alguien autorizado
-    String chat_id = String(bot.messages[i].chat_id); // Get chat id of the requester
-    if (chat_id != CHAT_ID){
-      bot.sendMessage(chat_id, "Usuario no autorizado.", "");
-      continue;
-    }
-
-    // Print the received message on serial
-    String text = bot.messages[i].text;
-    Serial.printf("Mensaje %d : %s\n", i, text.c_str());
-    
-    // Menu de comandos
-    if (text == "/start") {
-      String welcome = "*¡Bienvenido al bot de la Biblioteca Nacional!* 😄\n";
-      welcome += "Acá vas a poder consultar el estado de las unidades de estudio.\n";
-      welcome += "Para comenzar, utiliza el comando */estado*.\n";
-      welcome += "Si necesitas ayuda, utiliza el comando */ayuda*.\n";
-      welcome += "Si querés saber más sobre el proyecto, utiliza el comando */info*.\n";
-      bot.sendMessage(chat_id, welcome, "Markdown");
-    } else if (text == "/estado") {
-      String estado = "*Estado de las unidades:*\n";
-      estado += "Unidad " + String(NODE_ID) + "A: " + stateToString(stateUnitA) + "\n";
-      estado += "Unidad " + String(NODE_ID) + "B: " + stateToString(stateUnitB) + "\n";
-      estado += "Unidad " + String(NODE_ID) + "C: " + stateToString(stateUnitC) + "\n";
-      estado += "Unidad " + String(NODE_ID) + "D: " + stateToString(stateUnitD) + "\n";
-      bot.sendMessage(chat_id, estado, "Markdown");
-    } else {
-      bot.sendMessage(chat_id, "Comando no reconocido.", "");
-    }
-  }
-}
-
 void setupWifi() {
   delay(10);
   // We start by connecting to a WiFi network
@@ -442,7 +366,6 @@ void setupWifi() {
   Serial.printf("Connecting to %s", ssid);
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password);
-  client.setCACert(TELEGRAM_CERTIFICATE_ROOT); // Add root certificate for api.telegram.org
   WiFi.setSleep(false);
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
