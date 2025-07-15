@@ -9,6 +9,10 @@ services:
     image: influxdb:1.8
     ports:
       - "8086:8086"
+    volumes:
+      - influxdb_data:/var/lib/influxdb
+    environment:
+      - INFLUXDB_DB=mydb
 
   nodered:
     image: nodered/node-red
@@ -25,6 +29,10 @@ services:
     image: grafana/grafana
     ports:
       - "3000:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
     links:
       - influxdb
 
@@ -34,3 +42,7 @@ services:
       - influxdb
     volumes:
       - ./telegraf/telegraf.conf:/etc/telegraf/telegraf.conf
+
+volumes:
+  grafana_data:
+  influxdb_data:

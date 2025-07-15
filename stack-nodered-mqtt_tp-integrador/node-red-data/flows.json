@@ -2,7 +2,23 @@
     {
         "id": "dbf9b3eaf4276235",
         "type": "tab",
-        "label": "Flow 1",
+        "label": "Interacción con DB",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "151660a0ec1199c0",
+        "type": "tab",
+        "label": "Telegram Bot",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "e05f7e0e627cdb46",
+        "type": "tab",
+        "label": "handle /estado",
         "disabled": false,
         "info": "",
         "env": []
@@ -94,8 +110,8 @@
         "retentionPolicyV18Flux": "",
         "org": "organisation",
         "bucket": "bucket",
-        "x": 1060,
-        "y": 300,
+        "x": 1120,
+        "y": 340,
         "wires": []
     },
     {
@@ -111,8 +127,8 @@
         "rap": true,
         "rh": 0,
         "inputs": 0,
-        "x": 260,
-        "y": 300,
+        "x": 280,
+        "y": 340,
         "wires": [
             [
                 "fe8e5f2b1682303f",
@@ -124,7 +140,7 @@
         "id": "fe8e5f2b1682303f",
         "type": "debug",
         "z": "dbf9b3eaf4276235",
-        "name": "debug 1",
+        "name": "Ver formato mensaje MQTT",
         "active": false,
         "tosidebar": true,
         "console": false,
@@ -133,46 +149,32 @@
         "targetType": "full",
         "statusVal": "",
         "statusType": "auto",
-        "x": 500,
-        "y": 180,
+        "x": 540,
+        "y": 300,
         "wires": []
     },
     {
         "id": "c3fc5be4e7273163",
         "type": "debug",
         "z": "dbf9b3eaf4276235",
-        "name": "debug 2",
+        "name": "Ver formato de msg.payload para db",
         "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
-        "complete": "true",
-        "targetType": "full",
+        "complete": "payload",
+        "targetType": "msg",
         "statusVal": "",
         "statusType": "auto",
-        "x": 940,
-        "y": 180,
+        "x": 910,
+        "y": 300,
         "wires": []
-    },
-    {
-        "id": "0b38a7078d6f25bf",
-        "type": "telegram sender",
-        "z": "dbf9b3eaf4276235",
-        "name": "",
-        "bot": "d091af7db4be9e2e",
-        "haserroroutput": false,
-        "outputs": 1,
-        "x": 1310,
-        "y": 620,
-        "wires": [
-            []
-        ]
     },
     {
         "id": "d6063b03c59eef57",
         "type": "function",
         "z": "dbf9b3eaf4276235",
-        "name": "",
+        "name": "format para la db",
         "func": "let topicSplit = msg.topic.split(\"/\");\n\nlet nodeId = String(topicSplit[1]);\nlet unitId = String(topicSplit[2]);\nlet data = msg.payload\n\nif (topicSplit[3] == \"distance\"){\n    msg.payload = [\n        { // Fields\n            distance_cm: data\n        },\n        { // Tags\n            node_id: nodeId,\n            unit_id: unitId,\n\n        }\n    ];\n} else if (topicSplit[3] == \"state\"){\n    msg.payload = [\n        { // Fields\n            state: data\n        },\n        { // Tags\n            node_id: nodeId,\n            unit_id: unitId,\n\n        }\n    ];\n\n    let allUnitStates = global.get('allUnitStates') || {}; // Obtiene el objeto, o crea uno si no existe\n    if (!allUnitStates[nodeId]) {\n        allUnitStates[nodeId] = {}; // Crea un objeto para este nodo si no existe\n    }\n    allUnitStates[nodeId][unitId] = data; // Guarda el estado de esta unidad\n    global.set('allUnitStates', allUnitStates); // Actualiza la variable de contexto\n}\n\nreturn msg;",
         "outputs": 1,
         "timeout": 0,
@@ -180,8 +182,8 @@
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 580,
-        "y": 300,
+        "x": 570,
+        "y": 340,
         "wires": [
             [
                 "c3fc5be4e7273163",
@@ -193,19 +195,18 @@
         "id": "cd78ad41ba07d563",
         "type": "inject",
         "z": "dbf9b3eaf4276235",
-        "name": "trigger cada 5 segundos",
+        "name": "trigger cada 10 segundos",
         "props": [],
-        "repeat": "5",
+        "repeat": "10",
         "crontab": "",
         "once": false,
         "onceDelay": "5",
         "topic": "",
-        "x": 470,
-        "y": 460,
+        "x": 400,
+        "y": 640,
         "wires": [
             [
-                "0cb6897a1326eec2",
-                "f28665ea2599aaf0"
+                "0cb6897a1326eec2"
             ]
         ]
     },
@@ -213,16 +214,16 @@
         "id": "0cb6897a1326eec2",
         "type": "function",
         "z": "dbf9b3eaf4276235",
-        "name": "function 1",
-        "func": "let allUnitStates = global.get('allUnitStates') || {}; // Obtiene el objeto con los últimos estados\n\nlet libreCount = 0;\nlet ocupadoCount = 0;\nlet potencialmenteLibreCount = 0;\nlet totalUnits = 0;\n\n// Itera sobre todos los nodos y sus unidades\nfor (let nodeId in allUnitStates) {\n    if (allUnitStates.hasOwnProperty(nodeId)) {\n        let unitsInNode = allUnitStates[nodeId];\n        for (let unitId in unitsInNode) {\n            if (unitsInNode.hasOwnProperty(unitId)) {\n                totalUnits++;\n                let state = unitsInNode[unitId];\n                switch (state) {\n                    case \"Libre\":\n                        libreCount++;\n                        break;\n                    case \"Ocupado\":\n                        ocupadoCount++;\n                        break;\n                    case \"Potencialmente libre\":\n                        potencialmenteLibreCount++;\n                        break;\n                    // No necesitas un default si ya sabes que los estados son esos 3\n                }\n            }\n        }\n    }\n}\n\n// Crea el payload para el resumen (puede ser para MQTT o directamente para InfluxDB)\nif (totalUnits === 0) {\n    return null; // No envía mensaje\n}\n\n// Prepara el payload para InfluxDB (medición 'system_summary')\n// Usando el formato de objeto único si el Measurement se define en el payload\nmsg.payload = [\n    {\n        total_units: totalUnits,\n        libre_count: libreCount,\n        ocupado_count: ocupadoCount,\n        potencialmente_libre_count: potencialmenteLibreCount\n    },\n    {\n        summary_type: \"current_state_distribution\", // Tag para identificar el tipo de resumen\n    }\n]\n\nreturn msg;",
+        "name": "calculate currentStateDistribution and format",
+        "func": "let allUnitStates = global.get('allUnitStates') || {}; // Obtiene el objeto con los últimos estados\n\nlet libreCount = 0;\nlet ocupadoCount = 0;\nlet potencialmenteLibreCount = 0;\nlet totalUnits = 0;\n\n// Itera sobre todos los nodos y sus unidades\nfor (let nodeId in allUnitStates) {\n    if (allUnitStates.hasOwnProperty(nodeId)) {\n        let unitsInNode = allUnitStates[nodeId];\n        for (let unitId in unitsInNode) {\n            if (unitsInNode.hasOwnProperty(unitId)) {\n                totalUnits++;\n                let state = unitsInNode[unitId];\n                switch (state) {\n                    case \"Libre\":\n                        libreCount++;\n                        break;\n                    case \"Ocupado\":\n                        ocupadoCount++;\n                        break;\n                    case \"Potencialmente libre\":\n                        potencialmenteLibreCount++;\n                        break;\n                }\n            }\n        }\n    }\n}\n\nif (totalUnits === 0) {\n    return null; // No envía mensaje\n}\n\nlet currentStateDistribution = global.get('currentStateDistribution') || {};\ncurrentStateDistribution.totalUnits = totalUnits;\ncurrentStateDistribution.libreCount = libreCount;\ncurrentStateDistribution.ocupadoCount = ocupadoCount;\ncurrentStateDistribution.potencialmenteLibreCount = potencialmenteLibreCount;\nglobal.set('currentStateDistribution', currentStateDistribution);\n\n\n// format for db upload\nmsg.payload = [\n    {\n        total_units: totalUnits,\n        libre_count: libreCount,\n        ocupado_count: ocupadoCount,\n        potencialmente_libre_count: potencialmenteLibreCount\n    },\n    {\n        summary_type: \"current_state_distribution\", // Tag para identificar el tipo de resumen\n    }\n]\n\nreturn msg;",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 840,
-        "y": 460,
+        "x": 750,
+        "y": 640,
         "wires": [
             [
                 "87d7433193ed2d86",
@@ -231,28 +232,11 @@
         ]
     },
     {
-        "id": "f28665ea2599aaf0",
-        "type": "debug",
-        "z": "dbf9b3eaf4276235",
-        "name": "debug 6",
-        "active": false,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "true",
-        "targetType": "full",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 840,
-        "y": 420,
-        "wires": []
-    },
-    {
         "id": "87d7433193ed2d86",
         "type": "debug",
         "z": "dbf9b3eaf4276235",
         "name": "debug 7",
-        "active": false,
+        "active": true,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -260,8 +244,8 @@
         "targetType": "full",
         "statusVal": "",
         "statusType": "auto",
-        "x": 1100,
-        "y": 420,
+        "x": 1040,
+        "y": 680,
         "wires": []
     },
     {
@@ -278,26 +262,26 @@
         "retentionPolicyV18Flux": "",
         "org": "organisation",
         "bucket": "bucket",
-        "x": 1200,
-        "y": 460,
+        "x": 1160,
+        "y": 640,
         "wires": []
     },
     {
         "id": "a8e763971406c8a9",
         "type": "inject",
         "z": "dbf9b3eaf4276235",
-        "name": "Simular estados",
+        "name": "trigger deploy",
         "props": [],
         "repeat": "",
         "crontab": "",
-        "once": false,
+        "once": true,
         "onceDelay": 0.1,
         "topic": "",
-        "x": 160,
-        "y": 360,
+        "x": 200,
+        "y": 460,
         "wires": [
             [
-                "6899bdd3fe5e293d"
+                "23ab584b40509368"
             ]
         ]
     },
@@ -305,16 +289,16 @@
         "id": "6899bdd3fe5e293d",
         "type": "function",
         "z": "dbf9b3eaf4276235",
-        "name": "function 2",
-        "func": "const SIMULATED_UNITS = [\"A\", \"B\", \"C\", \"D\"]; // IDs de las unidades por cada nodo\nconst UMBRAL_OCUPADO_CM = 85; // Simula un umbral para 'ocupado'\nconst UMBRAL_POTENCIALMENTE_LIBRE_CM = 95; // Simula un umbral para 'potencialmente libre'\n\nlet messages = []; // Array para almacenar los mensajes a enviar\nfor (let nodeId = 10; nodeId < 37; nodeId++) {\n    SIMULATED_UNITS.forEach(unitId => {\n        let simulatedState;\n\n        const randomChance = Math.random();\n\n        if (randomChance < 0.4) { // 40% de probabilidad de ser ocupado;\n            simulatedState = \"Ocupado\";\n        } else if (randomChance < 0.6) { // 20% de probabilidad de ser potencialmente libre\n            simulatedState = \"Potencialmente libre\";\n        } else { // 40% de probabilidad de ser libre\n            simulatedState = \"Libre\";\n        }\n\n        // Construir el mensaje para InfluxDB (formato de objeto único)\n        let influxMsg = {\n            payload: [\n                {\n                    state: simulatedState\n                },\n                {\n                    node_id: String(nodeId),\n                    unit_id: unitId\n                }\n            ]\n        };\n        messages.push(influxMsg);\n\n        let allUnitStates = global.get('allUnitStates') || {}; // Obtiene el objeto, o crea uno si no existe\n        if (!allUnitStates[nodeId]) {\n            allUnitStates[nodeId] = {}; // Crea un objeto para este nodo si no existe\n        }\n        allUnitStates[nodeId][unitId] = simulatedState; // Guarda el estado de esta unidad\n        global.set('allUnitStates', allUnitStates); // Actualiza la variable de contexto\n    });\n};\n    \nmessages.forEach(msg => {\n    node.send(msg);\n});\nreturn null; // No retornar nada aquí para evitar un mensaje adicional",
+        "name": "simular unitStates",
+        "func": "let allUnitStates = global.get('allUnitStates') || {}; // Obtiene el objeto, o crea uno si no existe\n\nconst SIMULATED_UNITS = [\"A\", \"B\", \"C\", \"D\"]; // IDs de las unidades por cada nodo\nconst UMBRAL_OCUPADO_CM = 85; // Simula un umbral para 'ocupado'\nconst UMBRAL_POTENCIALMENTE_LIBRE_CM = 95; // Simula un umbral para 'potencialmente libre'\n\nlet messages = []; // Array para almacenar los mensajes a enviar\nfor (let nodeId = 10; nodeId < 37; nodeId++) {\n    SIMULATED_UNITS.forEach(unitId => {\n        let simulatedState;\n\n        const randomChance = Math.random();\n\n        if (randomChance < 0.4) { // 40% de probabilidad de ser ocupado;\n            simulatedState = \"Ocupado\";\n        } else if (randomChance < 0.6) { // 20% de probabilidad de ser potencialmente libre\n            simulatedState = \"Potencialmente libre\";\n        } else { // 40% de probabilidad de ser libre\n            simulatedState = \"Libre\";\n        }\n\n        // Construir el mensaje para InfluxDB (formato de objeto único)\n        let influxMsg = {\n            payload: [\n                {\n                    state: simulatedState\n                },\n                {\n                    node_id: String(nodeId),\n                    unit_id: unitId\n                }\n            ]\n        };\n        messages.push(influxMsg);\n\n        if (!allUnitStates[nodeId]) {\n            allUnitStates[nodeId] = {}; // Crea un objeto para este nodo si no existe\n        }\n        allUnitStates[nodeId][unitId] = simulatedState; // Guarda el estado de esta unidad\n    });\n};\n\nglobal.set('allUnitStates', allUnitStates); // Actualiza la variable de contexto\n\nmessages.forEach(msg => {\n    node.send(msg);\n});\nreturn null; // No retornar nada aquí para evitar un mensaje adicional",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 380,
-        "y": 360,
+        "x": 750,
+        "y": 460,
         "wires": [
             [
                 "eece56f92f744a85",
@@ -326,24 +310,110 @@
         "id": "eece56f92f744a85",
         "type": "debug",
         "z": "dbf9b3eaf4276235",
-        "name": "debug 3",
-        "active": false,
+        "name": "Ver estados simulados",
+        "active": true,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
-        "complete": "true",
-        "targetType": "full",
+        "complete": "payload",
+        "targetType": "msg",
         "statusVal": "",
         "statusType": "auto",
-        "x": 640,
-        "y": 380,
+        "x": 1060,
+        "y": 460,
         "wires": []
+    },
+    {
+        "id": "23ab584b40509368",
+        "type": "switch",
+        "z": "dbf9b3eaf4276235",
+        "name": "if no está poblada la db para demo",
+        "property": "allUnitStates[\"10\"].A",
+        "propertyType": "global",
+        "rules": [
+            {
+                "t": "null"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 1,
+        "x": 440,
+        "y": 460,
+        "wires": [
+            [
+                "6899bdd3fe5e293d"
+            ]
+        ]
+    },
+    {
+        "id": "b54e08326d207c18",
+        "type": "inject",
+        "z": "dbf9b3eaf4276235",
+        "name": "trigger manual",
+        "props": [],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 510,
+        "y": 500,
+        "wires": [
+            [
+                "6899bdd3fe5e293d"
+            ]
+        ]
+    },
+    {
+        "id": "65c0bbb7e3e96673",
+        "type": "comment",
+        "z": "dbf9b3eaf4276235",
+        "name": "Se simulan unitStates para la demo",
+        "info": "",
+        "x": 520,
+        "y": 420,
+        "wires": []
+    },
+    {
+        "id": "be11ea2c5ed9a946",
+        "type": "comment",
+        "z": "dbf9b3eaf4276235",
+        "name": "Se procesa la información que llega de los nodos a través de MQTT",
+        "info": "",
+        "x": 580,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "378e7b117f2c53e6",
+        "type": "comment",
+        "z": "dbf9b3eaf4276235",
+        "name": "Se calcula un total de los estados actuales y se envía a la db",
+        "info": "",
+        "x": 700,
+        "y": 600,
+        "wires": []
+    },
+    {
+        "id": "0b38a7078d6f25bf",
+        "type": "telegram sender",
+        "z": "151660a0ec1199c0",
+        "name": "",
+        "bot": "d091af7db4be9e2e",
+        "haserroroutput": false,
+        "outputs": 1,
+        "x": 1030,
+        "y": 240,
+        "wires": [
+            []
+        ]
     },
     {
         "id": "8579de8024f5b1e1",
         "type": "debug",
-        "z": "dbf9b3eaf4276235",
-        "name": "debug 5",
+        "z": "151660a0ec1199c0",
+        "name": "ver nuevo msg.payload",
         "active": true,
         "tosidebar": true,
         "console": false,
@@ -352,24 +422,24 @@
         "targetType": "full",
         "statusVal": "",
         "statusType": "auto",
-        "x": 970,
-        "y": 540,
+        "x": 990,
+        "y": 140,
         "wires": []
     },
     {
         "id": "b089683a701c8c2f",
         "type": "function",
-        "z": "dbf9b3eaf4276235",
-        "name": "",
-        "func": "let startMsg = \"*¡Bienvenido al bot de la Biblioteca Nacional!* 😄\\n\";\nstartMsg += \"Acá vas a poder consultar el estado de las unidades de estudio.\\n\";\nstartMsg += \"Para comenzar, utiliza el comando */estado*.\\n\";\nstartMsg += \"Si necesitas ayuda, utiliza el comando */ayuda*.\\n\";\nstartMsg += \"Si querés saber más sobre el proyecto, utiliza el comando */info*.\\n\";\n\nmsg.payload.content = startMsg;\nmsg.payload.options = {parse_mode: \"Markdown\"};\n\nreturn msg;",
+        "z": "151660a0ec1199c0",
+        "name": "set reply",
+        "func": "let startMsg = \"*¡Bienvenido al bot de la Biblioteca Nacional Mariano Moreno!* 😄\\n\\n\";\nstartMsg += \"Acá vas a poder consultar el estado de las unidades de estudio.\\n\";\nstartMsg += \"Para comenzar, utiliza el comando */estado*.\\n\";\nstartMsg += \"Si querés saber más sobre el proyecto, utiliza el comando */info*.\\n\\n\";\nstartMsg += \"¡Esperamos que disfrutes de la experiencia! 📚✨\";\n\nmsg.payload.content = startMsg;\nmsg.payload.options = { parse_mode: \"Markdown\" };\n\nreturn msg;",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 600,
-        "y": 640,
+        "x": 660,
+        "y": 200,
         "wires": [
             [
                 "0b38a7078d6f25bf",
@@ -380,7 +450,7 @@
     {
         "id": "a5d9b5f394d26dc6",
         "type": "telegram command",
-        "z": "dbf9b3eaf4276235",
+        "z": "151660a0ec1199c0",
         "name": "",
         "command": "/start",
         "description": "",
@@ -393,8 +463,8 @@
         "useregex": false,
         "removeregexcommand": false,
         "outputs": 2,
-        "x": 330,
-        "y": 640,
+        "x": 390,
+        "y": 200,
         "wires": [
             [
                 "b089683a701c8c2f",
@@ -406,8 +476,8 @@
     {
         "id": "779669998098d818",
         "type": "debug",
-        "z": "dbf9b3eaf4276235",
-        "name": "debug 4",
+        "z": "151660a0ec1199c0",
+        "name": "ver formato de msg de Telegram",
         "active": true,
         "tosidebar": true,
         "console": false,
@@ -416,14 +486,14 @@
         "targetType": "full",
         "statusVal": "",
         "statusType": "auto",
-        "x": 480,
-        "y": 580,
+        "x": 610,
+        "y": 140,
         "wires": []
     },
     {
         "id": "cf79836c8a0b10cb",
         "type": "telegram command",
-        "z": "dbf9b3eaf4276235",
+        "z": "151660a0ec1199c0",
         "name": "",
         "command": "/info",
         "description": "",
@@ -436,8 +506,8 @@
         "useregex": false,
         "removeregexcommand": false,
         "outputs": 2,
-        "x": 330,
-        "y": 700,
+        "x": 390,
+        "y": 260,
         "wires": [
             [
                 "a15ed18c784308d0"
@@ -448,17 +518,17 @@
     {
         "id": "a15ed18c784308d0",
         "type": "function",
-        "z": "dbf9b3eaf4276235",
-        "name": "",
-        "func": "let mensaje = \"Este bot fue desarrollado por *Juan Ignacio Acuña*, en el marco de la materia *Internet de las Cosas de la UNLP (año 2025)*.\\n\";\nmensaje += \"Se eligió la *Biblioteca Nacional Mariano Moreno* a modo de ejemplo.\\n\";\nmensaje += \"¡*Gracias* por usar el bot! ❤\\n\";\n\nmsg.payload.content = mensaje;\nmsg.payload.options = { parse_mode: \"Markdown\" };\n\nreturn msg;",
+        "z": "151660a0ec1199c0",
+        "name": "set reply",
+        "func": "let mensaje = \"Desarrollado por *Juan Ignacio Acuña* [https://github.com/juannnacuna/iot_tpi] \\n\";\nmensaje += \"Como trabajo final de la materia *Internet de las Cosas de la UNLP (año 2025)*.\\n\";\nmensaje += \"Se eligió la *Biblioteca Nacional Mariano Moreno* a modo de ejemplo.\\n\";\nmensaje += \"Este proyecto no tiene fines de lucro y no está asociado a la Biblioteca Nacional.\\n\";\nmensaje += \"¡*Gracias* por usar el bot! ❤\";\n\nmsg.payload.content = mensaje;\nmsg.payload.options = { parse_mode: \"Markdown\" };\n\nreturn msg;",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 600,
-        "y": 700,
+        "x": 660,
+        "y": 260,
         "wires": [
             [
                 "0b38a7078d6f25bf"
@@ -468,7 +538,7 @@
     {
         "id": "8f2cebc0e3296cde",
         "type": "telegram command",
-        "z": "dbf9b3eaf4276235",
+        "z": "151660a0ec1199c0",
         "name": "",
         "command": "/estado",
         "description": "",
@@ -481,68 +551,47 @@
         "useregex": false,
         "removeregexcommand": false,
         "outputs": 2,
-        "x": 330,
-        "y": 760,
+        "x": 390,
+        "y": 320,
         "wires": [
             [
-                "8e95e635041393d0"
+                "4fbc4c207eee91d3"
             ],
             []
         ]
     },
     {
-        "id": "94b45318ad118766",
-        "type": "inject",
-        "z": "dbf9b3eaf4276235",
-        "name": "",
-        "props": [
-            {
-                "p": "payload"
-            },
-            {
-                "p": "topic",
-                "vt": "str"
-            }
+        "id": "4fbc4c207eee91d3",
+        "type": "link call",
+        "z": "151660a0ec1199c0",
+        "name": "handle /estado",
+        "links": [
+            "92c2d9e5a8111971"
         ],
-        "repeat": "",
-        "crontab": "",
-        "once": false,
-        "onceDelay": 0.1,
-        "topic": "",
-        "payload": "",
-        "payloadType": "date",
-        "x": 240,
-        "y": 940,
+        "linkType": "static",
+        "timeout": "30",
+        "x": 680,
+        "y": 320,
         "wires": [
             [
-                "e8d7f3523a8bd0b9"
+                "0b38a7078d6f25bf"
             ]
         ]
     },
     {
-        "id": "e8d7f3523a8bd0b9",
-        "type": "file in",
-        "z": "dbf9b3eaf4276235",
-        "name": "plano",
-        "filename": "/data/static/BNMM_plano.jpg",
-        "filenameType": "str",
-        "format": "",
-        "chunk": false,
-        "sendError": false,
-        "encoding": "none",
-        "allProps": false,
-        "x": 470,
-        "y": 940,
-        "wires": [
-            [
-                "17b90ad5097e5fdd"
-            ]
-        ]
+        "id": "f37ab7223bc28138",
+        "type": "comment",
+        "z": "151660a0ec1199c0",
+        "name": "Se configura el manejo de los distintos comandos del bot de Telegram",
+        "info": "",
+        "x": 770,
+        "y": 80,
+        "wires": []
     },
     {
         "id": "1ddfb570e69ccb72",
         "type": "function",
-        "z": "dbf9b3eaf4276235",
+        "z": "e05f7e0e627cdb46",
         "name": "set annotations",
         "func": "const allUnitStates = global.get('allUnitStates') || {};\n\nfunction calculateSeatCoordinates(nodeId, unitId) {\n    const TABLE = Math.floor((parseInt(nodeId) - 10) / 5);\n    const PLACE = (parseInt(nodeId) - 10) % 5;\n    const COL_INCREMENT_X = 92;  // Salto para pasar al extremo derecho\n    const ROW_INCREMENT_Y = 32;  // Salto para pasar al extremo inferior\n    const BASE_X = 225 + (155 * TABLE); // Extremo izquierdo de la mesa\n    const BASE_Y = 845 + (32 * 2 * PLACE); // Extremo superior del nodo\n\n    if (unitId === \"A\") {\n        return { x: BASE_X, y: BASE_Y };\n    }\n\n    if (unitId === \"B\") {\n        return { x: BASE_X + COL_INCREMENT_X, y: BASE_Y };\n    }\n\n    if (unitId === \"C\") {\n        return { x: BASE_X, y: BASE_Y + ROW_INCREMENT_Y};\n    }\n\n    if (unitId === \"D\") {\n        return { x: BASE_X + COL_INCREMENT_X, y: BASE_Y + ROW_INCREMENT_Y };\n    }\n}\n\nconst STATE_COLORS = {\n    \"Libre\": \"#00CC00\", // Verde\n    \"Ocupado\": \"#FF0000\", // Rojo\n    \"Potencialmente libre\": \"#FFA500\" // Naranja\n};\n\nconst pointRadius = 6; // Radio de los círculos (el tamaño de los puntos)\nconst lineWidth = 15; // Ancho del borde\nconst borderColor = \"#FFFFFF\"; // Color del borde (blanco)\n\nconst annotations = [];\n\nfor (const nodeId in allUnitStates) {\n    if (parseInt(nodeId) < 10) continue;\n    if (allUnitStates.hasOwnProperty(nodeId)) {\n        const unitsInNode = allUnitStates[nodeId]; // Unidades dentro de este nodo\n        for (const unitId in unitsInNode) {\n            if (unitsInNode.hasOwnProperty(unitId)) {\n                const currentState = unitsInNode[unitId];\n                const coords = calculateSeatCoordinates(nodeId, unitId);\n                const color = STATE_COLORS[currentState]\n                if (coords) {\n                    annotations.push({\n                        type: \"circle\",\n                        x: coords.x,\n                        y: coords.y,\n                        r: pointRadius,\n                        stroke: color,\n                        lineWidth: lineWidth,\n                    });\n                } else {\n                    node.warn(`Coordenadas no encontradas para la unidad: `+ nodeId + unitId);\n                }\n            }\n        }\n    }\n}\n\nmsg.annotations = annotations;\n\nreturn msg;",
         "outputs": 1,
@@ -551,8 +600,8 @@
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 700,
-        "y": 780,
+        "x": 720,
+        "y": 300,
         "wires": [
             [
                 "7857443bf807dc23"
@@ -560,10 +609,111 @@
         ]
     },
     {
+        "id": "777a8d0849d42947",
+        "type": "image viewer",
+        "z": "e05f7e0e627cdb46",
+        "name": "",
+        "width": "1200",
+        "data": "payload",
+        "dataType": "msg",
+        "active": false,
+        "x": 1190,
+        "y": 300,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "7857443bf807dc23",
+        "type": "annotate-image",
+        "z": "e05f7e0e627cdb46",
+        "name": "",
+        "fill": "",
+        "stroke": "#ffC000",
+        "lineWidth": "",
+        "fontSize": "",
+        "fontColor": "#ffC000",
+        "x": 940,
+        "y": 300,
+        "wires": [
+            [
+                "777a8d0849d42947",
+                "d58eb80bef14c4f7"
+            ]
+        ]
+    },
+    {
+        "id": "8e95e635041393d0",
+        "type": "function",
+        "z": "e05f7e0e627cdb46",
+        "name": "get image and format payload",
+        "func": "msg.payloadoriginal = msg.payload;\nmsg.payload = global.get('image');\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 430,
+        "y": 240,
+        "wires": [
+            [
+                "1ddfb570e69ccb72"
+            ]
+        ]
+    },
+    {
+        "id": "d58eb80bef14c4f7",
+        "type": "function",
+        "z": "e05f7e0e627cdb46",
+        "name": "reformat payload for Telegram",
+        "func": "msg.payloadoriginal.content = msg.payload;\nmsg.payloadoriginal.type = 'photo';\nmsg.payload = msg.payloadoriginal;\ndelete msg.payloadoriginal;\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1230,
+        "y": 220,
+        "wires": [
+            [
+                "994b9ae01b93e7ee"
+            ]
+        ]
+    },
+    {
+        "id": "d4851102073c0962",
+        "type": "change",
+        "z": "e05f7e0e627cdb46",
+        "name": "Generando imagen...",
+        "rules": [
+            {
+                "t": "set",
+                "p": "payload.content",
+                "pt": "msg",
+                "to": "Generando imagen...",
+                "tot": "str"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 1080,
+        "y": 140,
+        "wires": [
+            [
+                "382026fd120af6db"
+            ]
+        ]
+    },
+    {
         "id": "b358e79d0d2e30d9",
         "type": "inject",
-        "z": "dbf9b3eaf4276235",
-        "name": "",
+        "z": "e05f7e0e627cdb46",
+        "name": "prueba a mano (no se envía)",
         "props": [
             {
                 "p": "payload"
@@ -576,8 +726,8 @@
         "topic": "",
         "payload": "image",
         "payloadType": "global",
-        "x": 370,
-        "y": 840,
+        "x": 440,
+        "y": 300,
         "wires": [
             [
                 "1ddfb570e69ccb72"
@@ -585,9 +735,157 @@
         ]
     },
     {
+        "id": "92c2d9e5a8111971",
+        "type": "link in",
+        "z": "e05f7e0e627cdb46",
+        "name": "link in handle /estado",
+        "links": [],
+        "x": 185,
+        "y": 140,
+        "wires": [
+            [
+                "8e95e635041393d0",
+                "527061b3c67c5819"
+            ]
+        ]
+    },
+    {
+        "id": "382026fd120af6db",
+        "type": "link out",
+        "z": "e05f7e0e627cdb46",
+        "name": "link out 1",
+        "mode": "return",
+        "links": [],
+        "x": 1275,
+        "y": 140,
+        "wires": []
+    },
+    {
+        "id": "4fa9749e9499b9df",
+        "type": "link out",
+        "z": "e05f7e0e627cdb46",
+        "name": "link out 2",
+        "mode": "return",
+        "links": [],
+        "x": 865,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "527061b3c67c5819",
+        "type": "function",
+        "z": "e05f7e0e627cdb46",
+        "name": "Resumen currentStateDistribution",
+        "func": "const currentStateDistribution = global.get('currentStateDistribution');\nconst totalUnits = String(currentStateDistribution.totalUnits);\nconst libreCount = String(currentStateDistribution.libreCount);\nconst ocupadoCount = String(currentStateDistribution.ocupadoCount);\nconst potencialmenteLibreCount = String(currentStateDistribution.potencialmenteLibreCount);\n\nlet content = \"📊 *Estado actual de las unidades* 📊\\n\";\ncontent += \"💡 Unidades activas: \" + totalUnits + \"\\n\";\ncontent += \"🟢 Unidades libres: \" + libreCount + \"\\n\";\ncontent += \"🟡 Unidades potencialmente libres: \" + potencialmenteLibreCount + \"\\n\";\ncontent += \"🔴 Unidades ocupadas: \" + ocupadoCount + \"\\n\";\n\nmsg.payload.content = content;\nmsg.payload.options = { parse_mode: \"Markdown\" };\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 660,
+        "y": 140,
+        "wires": [
+            [
+                "d4851102073c0962",
+                "4fa9749e9499b9df"
+            ]
+        ]
+    },
+    {
+        "id": "994b9ae01b93e7ee",
+        "type": "link out",
+        "z": "e05f7e0e627cdb46",
+        "name": "link out 3",
+        "mode": "return",
+        "links": [],
+        "x": 1455,
+        "y": 220,
+        "wires": []
+    },
+    {
+        "id": "aded02bf3039df32",
+        "type": "comment",
+        "z": "e05f7e0e627cdb46",
+        "name": "Se muestra un resumen del estado actual de las unidades.",
+        "info": "",
+        "x": 590,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "79289cbcc75d2405",
+        "type": "comment",
+        "z": "e05f7e0e627cdb46",
+        "name": "Se avisa que se está generando la imagen.",
+        "info": "",
+        "x": 1120,
+        "y": 100,
+        "wires": []
+    },
+    {
+        "id": "da4f25e1ba64c077",
+        "type": "comment",
+        "z": "e05f7e0e627cdb46",
+        "name": "Este flujo se encarga de cargar la imagen, graficar el estado de los nodos, y enviarla.",
+        "info": "",
+        "x": 770,
+        "y": 360,
+        "wires": []
+    },
+    {
+        "id": "94b45318ad118766",
+        "type": "inject",
+        "z": "e05f7e0e627cdb46",
+        "name": "deploy trigger",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "",
+        "payloadType": "date",
+        "x": 440,
+        "y": 540,
+        "wires": [
+            [
+                "d127d45b7f55f0d6"
+            ]
+        ]
+    },
+    {
+        "id": "e8d7f3523a8bd0b9",
+        "type": "file in",
+        "z": "e05f7e0e627cdb46",
+        "name": "get image",
+        "filename": "/data/static/BNMM_plano.jpg",
+        "filenameType": "str",
+        "format": "",
+        "chunk": false,
+        "sendError": false,
+        "encoding": "none",
+        "allProps": false,
+        "x": 880,
+        "y": 540,
+        "wires": [
+            [
+                "17b90ad5097e5fdd"
+            ]
+        ]
+    },
+    {
         "id": "17b90ad5097e5fdd",
         "type": "change",
-        "z": "dbf9b3eaf4276235",
+        "z": "e05f7e0e627cdb46",
         "name": "",
         "rules": [
             {
@@ -603,102 +901,43 @@
         "from": "",
         "to": "",
         "reg": false,
+        "x": 1060,
+        "y": 540,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "d127d45b7f55f0d6",
+        "type": "switch",
+        "z": "e05f7e0e627cdb46",
+        "name": "if global.image is null",
+        "property": "image",
+        "propertyType": "global",
+        "rules": [
+            {
+                "t": "null"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 1,
         "x": 680,
-        "y": 940,
-        "wires": [
-            []
-        ]
-    },
-    {
-        "id": "777a8d0849d42947",
-        "type": "image viewer",
-        "z": "dbf9b3eaf4276235",
-        "name": "",
-        "width": "1200",
-        "data": "payload",
-        "dataType": "msg",
-        "active": true,
-        "x": 1150,
-        "y": 860,
-        "wires": [
-            []
-        ]
-    },
-    {
-        "id": "7857443bf807dc23",
-        "type": "annotate-image",
-        "z": "dbf9b3eaf4276235",
-        "name": "",
-        "fill": "",
-        "stroke": "#ffC000",
-        "lineWidth": "",
-        "fontSize": "",
-        "fontColor": "#ffC000",
-        "x": 920,
-        "y": 780,
+        "y": 540,
         "wires": [
             [
-                "777a8d0849d42947",
-                "cfe4ecc0ac49aab7",
-                "d58eb80bef14c4f7"
+                "e8d7f3523a8bd0b9"
             ]
         ]
     },
     {
-        "id": "cfe4ecc0ac49aab7",
-        "type": "debug",
-        "z": "dbf9b3eaf4276235",
-        "name": "debug 8",
-        "active": true,
-        "tosidebar": true,
-        "console": false,
-        "tostatus": false,
-        "complete": "true",
-        "targetType": "full",
-        "statusVal": "",
-        "statusType": "auto",
-        "x": 1120,
-        "y": 720,
+        "id": "ba3f0daa41b81abd",
+        "type": "comment",
+        "z": "e05f7e0e627cdb46",
+        "name": "Se carga el plano como variable global (si no está cargado)",
+        "info": "",
+        "x": 750,
+        "y": 500,
         "wires": []
-    },
-    {
-        "id": "8e95e635041393d0",
-        "type": "function",
-        "z": "dbf9b3eaf4276235",
-        "name": "get image",
-        "func": "msg.payloadoriginal = msg.payload;\nmsg.payload = global.get('image');\nreturn msg;",
-        "outputs": 1,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 520,
-        "y": 760,
-        "wires": [
-            [
-                "1ddfb570e69ccb72"
-            ]
-        ]
-    },
-    {
-        "id": "d58eb80bef14c4f7",
-        "type": "function",
-        "z": "dbf9b3eaf4276235",
-        "name": "format response",
-        "func": "msg.payloadoriginal.content = msg.payload;\nmsg.payloadoriginal.type = 'photo';\nmsg.payload = msg.payloadoriginal;\ndelete msg.payloadoriginal;\nreturn msg;",
-        "outputs": 1,
-        "timeout": 0,
-        "noerr": 0,
-        "initialize": "",
-        "finalize": "",
-        "libs": [],
-        "x": 1170,
-        "y": 780,
-        "wires": [
-            [
-                "0b38a7078d6f25bf"
-            ]
-        ]
     }
 ]
