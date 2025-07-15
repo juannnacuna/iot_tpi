@@ -1,20 +1,12 @@
-# ./grafana/provisioning/dashboards/my_dashboards.yaml
 apiVersion: 1
 
 providers:
-  - name: 'Default Dashboards' # Un nombre para tu proveedor de dashboards
-    orgId: 1 # ID de la organización de Grafana (1 es la predeterminada)
-    folder: '' # Puedes especificar una carpeta en Grafana para estos dashboards, o dejar en blanco para la raíz
+  - name: 'Default Dashboards'
+    orgId: 1
+    folder: ''
     type: file
-    disableDeletion: false # Si pones true, no se podrán borrar desde la UI de Grafana
-    editable: true # Si pones false, no se podrán editar desde la UI de Grafana
+    disableDeletion: false
+    editable: true
     options:
-      path: /var/lib/grafana/dashboards # <-- ¡Esta es la ruta DENTRO DEL CONTENEDOR!
-      # Puedes usar etiquetas para organizar si lo deseas
-      # folderUID: '' # Unique identifier for the folder if you're using a specific folder.
-      # updateIntervalSeconds: 10 # Defaults to 10s. Minimum is 5s.
-      allowUiUpdates: true    # If true, dashboards can be updated from the UI and saved back to the file.
-                              # If false, UI changes will be lost on restart.
-                              # Esto es importante: false = dashboards son solo lectura desde el UI.
-                              # true = puedes editarlos desde UI, y Grafana los guarda en el JSON.
-                              # Para versionar bien, suele ser false y editas el JSON directamente.
+      path: /var/lib/grafana/dashboards
+      allowUiUpdates: true

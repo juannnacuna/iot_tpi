@@ -1,0 +1,398 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": 2,
+  "links": [],
+  "liveNow": true,
+  "panels": [
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ees1uspafwj5sb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "axisCenteredZero": false,
+            "axisColorMode": "text",
+            "axisLabel": "",
+            "axisPlacement": "auto",
+            "barAlignment": 0,
+            "barWidthFactor": 0.6,
+            "drawStyle": "line",
+            "fillOpacity": 0,
+            "gradientMode": "none",
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineInterpolation": "linear",
+            "lineWidth": 1,
+            "pointSize": 5,
+            "scaleDistribution": {
+              "type": "linear"
+            },
+            "showPoints": "auto",
+            "spanNulls": false,
+            "stacking": {
+              "group": "A",
+              "mode": "none"
+            },
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "legend": {
+          "calcs": [],
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.0.2",
+      "targets": [
+        {
+          "alias": "Distancia",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ees1uspafwj5sb"
+          },
+          "groupBy": [],
+          "measurement": "unit_data",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "distance_cm"
+                ],
+                "type": "field"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "node_id::tag",
+              "operator": "=",
+              "value": "37"
+            },
+            {
+              "condition": "AND",
+              "key": "unit_id::tag",
+              "operator": "=",
+              "value": "A"
+            }
+          ]
+        }
+      ],
+      "title": "Distancia leída por la Unidad 37A",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "influxdb",
+        "uid": "ees1uspafwj5sb"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "continuous-GrYlRd"
+          },
+          "custom": {
+            "axisPlacement": "auto",
+            "fillOpacity": 70,
+            "hideFrom": {
+              "legend": false,
+              "tooltip": false,
+              "viz": false
+            },
+            "insertNulls": false,
+            "lineWidth": 0,
+            "spanNulls": false
+          },
+          "mappings": [
+            {
+              "options": {
+                "Libre": {
+                  "color": "green",
+                  "index": 0
+                },
+                "Ocupado": {
+                  "color": "red",
+                  "index": 2
+                },
+                "Potencialmente libre": {
+                  "color": "dark-yellow",
+                  "index": 1
+                }
+              },
+              "type": "value"
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green"
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "id": 2,
+      "options": {
+        "alignValue": "left",
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "mergeValues": true,
+        "rowHeight": 0.9,
+        "showValue": "auto",
+        "tooltip": {
+          "hideZeros": false,
+          "mode": "single",
+          "sort": "none"
+        }
+      },
+      "pluginVersion": "12.0.2",
+      "targets": [
+        {
+          "alias": "Unidad A",
+          "groupBy": [],
+          "measurement": "unit_data",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT \"state\" FROM \"unit_data\" WHERE (\"node_id\"::tag = '37' AND \"unit_id\"::tag = 'A') AND $timeFilter",
+          "rawQuery": true,
+          "refId": "A",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "state"
+                ],
+                "type": "field"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "node_id::tag",
+              "operator": "=",
+              "value": "37"
+            },
+            {
+              "condition": "AND",
+              "key": "unit_id::tag",
+              "operator": "=",
+              "value": "A"
+            }
+          ]
+        },
+        {
+          "alias": "Unidad B",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ees1uspafwj5sb"
+          },
+          "groupBy": [],
+          "hide": false,
+          "measurement": "unit_data",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT \"state\" FROM \"unit_data\" WHERE (\"node_id\"::tag = '37' AND \"unit_id\"::tag = 'B') AND $timeFilter",
+          "rawQuery": true,
+          "refId": "B",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "state"
+                ],
+                "type": "field"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "node_id::tag",
+              "operator": "=",
+              "value": "37"
+            },
+            {
+              "condition": "AND",
+              "key": "unit_id::tag",
+              "operator": "=",
+              "value": "A"
+            }
+          ]
+        },
+        {
+          "alias": "Unidad C",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ees1uspafwj5sb"
+          },
+          "groupBy": [],
+          "hide": false,
+          "measurement": "unit_data",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT \"state\" FROM \"unit_data\" WHERE (\"node_id\"::tag = '37' AND \"unit_id\"::tag = 'C') AND $timeFilter",
+          "rawQuery": true,
+          "refId": "C",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "state"
+                ],
+                "type": "field"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "node_id::tag",
+              "operator": "=",
+              "value": "37"
+            },
+            {
+              "condition": "AND",
+              "key": "unit_id::tag",
+              "operator": "=",
+              "value": "A"
+            }
+          ]
+        },
+        {
+          "alias": "Unidad D",
+          "datasource": {
+            "type": "influxdb",
+            "uid": "ees1uspafwj5sb"
+          },
+          "groupBy": [],
+          "hide": false,
+          "measurement": "unit_data",
+          "orderByTime": "ASC",
+          "policy": "default",
+          "query": "SELECT \"state\" FROM \"unit_data\" WHERE (\"node_id\"::tag = '37' AND \"unit_id\"::tag = 'D') AND $timeFilter",
+          "rawQuery": true,
+          "refId": "D",
+          "resultFormat": "time_series",
+          "select": [
+            [
+              {
+                "params": [
+                  "state"
+                ],
+                "type": "field"
+              }
+            ]
+          ],
+          "tags": [
+            {
+              "key": "node_id::tag",
+              "operator": "=",
+              "value": "37"
+            },
+            {
+              "condition": "AND",
+              "key": "unit_id::tag",
+              "operator": "=",
+              "value": "A"
+            }
+          ]
+        }
+      ],
+      "title": "New panel",
+      "type": "state-timeline"
+    }
+  ],
+  "preload": false,
+  "schemaVersion": 41,
+  "tags": [],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-5m",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "DashboardPrincipal",
+  "uid": "5c566e5b-ebe8-4be2-b58d-98c3ede1f385",
+  "version": 4
+}
