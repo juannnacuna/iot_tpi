@@ -6,6 +6,7 @@ Este proyecto fue desarrollado como Trabajo Final para la materia Internet de la
 
 - Bot de Telegram corriendo por defecto en @catedra_iot_2025_acuna_integbot.
 - Recordar configurar las credenciales del WiFi en el código del ESP32.
+- Prestar atención a la IP asignada al nodo para acceder a la interfaz web (se imprime por serial al iniciarse).
 - No pude persistir la base de datos. Es necesario crear una llamada 'mydb'.
 - En relación al punto anterior, si bien en Grafana si se persistió un Dashboard básico, puede que sea necesario configurar la conexión a la base de datos.
 
