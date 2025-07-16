@@ -39,7 +39,7 @@ A cada nodo se le asignan unidades, para las cuales:
 - Hace una lectura de distancia al suelo, utilizando un sensor de distancia (Sensor Ultrasónico HC-SR04) que se ubica en la parte inferior de la mesa.
 - Maneja su estado (Libre, Potencialmente libre u Ocupado)
 
-![Cambios de estado](assets/cambios_de_estado.jpg)
+![Cambios de estado](assets/cambios_de_estados.jpg)
 
 El propósito del estado Potencialmente libre es el de evitar falsos positivos, contemplando el uso real de las unidades ya que un usuario usualmente se levanta de su asiento brevemente, por ejemplo para buscar un libro o ir al sanitario.
 
