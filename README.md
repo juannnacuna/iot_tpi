@@ -1,14 +1,27 @@
-# Problema
+# Gestión Inteligente de Unidades de Estudio: Biblioteca Nacional Mariano Moreno
+
+Este proyecto fue desarrollado como Trabajo Final para la materia Internet de las Cosas (2025), Facultad de Informática, Universidad Nacional de La Plata (UNLP)
+
+## Notas
+
+- Bot de Telegram corriendo por defecto en @catedra_iot_2025_acuna_integbot.
+- Recordar configurar las credenciales del WiFi en el código del ESP32.
+- No pude persistir la base de datos. Es necesario crear una llamada 'mydb'.
+- En relación al punto anterior, si bien en Grafana si se persistió un Dashboard básico, puede que sea necesario configurar la conexión a la base de datos.
+
+## Informe
+
+### Problema
 
 En entornos como bibliotecas universitarias o pisos de oficina existe una problemática común: la ineficiente gestión de sus espacios. En algunos casos los usuarios pierden tiempo buscando una unidad disponible. Otras veces no se cuenta con datos precisos sobre el uso real de las unidades, incluso aunque exista un sistema de reserva de unidades o salas privadas.
 
 A modo de ejemplo, se tomará como caso de estudio a la Biblioteca Nacional Mariano Moreno (BNMM), teniendo en cuenta su inmensa cantidad de unidades de estudio.
 
-# Objetivo
+### Objetivo
 
 Mediante el uso de IoT, el objetivo de este proyecto es resolver estos problemas con una solución que mejore la experiencia del usuario, proporcione una manera de recolectar información en tiempo real (fundamental para optimizar el uso de los espacios y la toma de decisiones administrativas), y siente las bases de un sistema escalable.
 
-# Solución
+### Solución
 
 La solución implementada consiste en un sistema de nodos inteligentes ESP32 que serán distribuidos a lo largo de las mesas de trabajo que están repartidas en las distintas salas y salones de lectura de la biblioteca.
 
@@ -29,7 +42,7 @@ La arquitectura de la solución es la siguiente:
 
 Como se explicó anteriormente, cada nodo envía información al servidor central a través del protocolo MQTT. El servidor central, mediante el uso del broker Mosquitto, recibe los mensajes. Esa información es manejada por una instancia de Node-RED, que hace de “cerebro”: interpreta la información, la guarda en variables, hace distintos cálculos y se encarga de guardarla en la base de datos InfluxDB. Esta información se puede visualizar fácilmente desde Grafana. Por último, Node-RED también se encarga de controlar un bot de Telegram (@catedra_iot_2025_acuna_integbot), encargándose de responder los comandos.
 
-# Conclusión
+### Conclusión
 
 Se ha implementado un sistema que cumple con los objetivos propuestos, y que efectivamente sienta las bases de un sistema escalable. Algunos de los puntos a extender pueden ser:
 
