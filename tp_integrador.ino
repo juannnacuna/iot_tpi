@@ -24,8 +24,8 @@
 #define SOUND_SPEED 0.034
 
 // Credenciales WiFi
-const char* ssid = "Losacu 2.4Ghz";
-const char* password = "abu9275561";
+const char* ssid = "Moto G84";  // Cambiar por el nombre de tu red WiFi
+const char* password = "motog84!";   // Cambiar por la contraseña de tu red WiFi
 WiFiClientSecure client;
 
 // Datos del Broker (MQTT)
@@ -379,6 +379,7 @@ void setupWifi() {
 void mqttVerifyReconnectReceive() {
   if (!mqttClient.connected() && (millis() - lastConnectTry) >= INTERVALO_TRY_CONNECT) {
     reconnectToBroker();
+    lastConnectTry = millis();
   }
   mqttClient.loop();
 }

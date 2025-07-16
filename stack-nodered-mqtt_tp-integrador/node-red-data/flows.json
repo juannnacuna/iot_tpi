@@ -403,8 +403,8 @@
         "bot": "d091af7db4be9e2e",
         "haserroroutput": false,
         "outputs": 1,
-        "x": 1030,
-        "y": 240,
+        "x": 1070,
+        "y": 220,
         "wires": [
             [
                 "74addc48a7b540d5"
@@ -433,7 +433,7 @@
         "type": "function",
         "z": "151660a0ec1199c0",
         "name": "set reply",
-        "func": "let startMsg = \"*¡Bienvenido al bot de la Biblioteca Nacional Mariano Moreno!* 😄\\n\\n\";\nstartMsg += \"Acá vas a poder consultar el estado de las unidades de estudio.\\n\";\nstartMsg += \"Para comenzar, utiliza el comando */estado*.\\n\";\nstartMsg += \"Si querés saber más sobre el proyecto, utiliza el comando */info*.\\n\\n\";\nstartMsg += \"¡Esperamos que disfrutes de la experiencia! 📚✨\";\n\nmsg.payload.content = startMsg;\nmsg.payload.options = { parse_mode: \"Markdown\" };\n\nreturn msg;",
+        "func": "let startMsg = \"*¡Bienvenido al bot de la Biblioteca Nacional Mariano Moreno!* 😄\\n\\n\";\nstartMsg += \"Acá vas a poder consultar el estado de las unidades de estudio.\\n\";\nstartMsg += \"Para comenzar, utiliza el comando */estado*.\\n\";\nstartMsg += \"O podés primero pedir */ayuda* para entender la consulta.\\n\";\nstartMsg += \"Si querés saber más sobre el proyecto, utiliza el comando */info*.\\n\\n\";\nstartMsg += \"¡Esperamos que disfrutes de la experiencia! 📚✨\";\n\nmsg.payload.content = startMsg;\nmsg.payload.options = { parse_mode: \"Markdown\" };\n\nreturn msg;",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
@@ -522,7 +522,7 @@
         "type": "function",
         "z": "151660a0ec1199c0",
         "name": "set reply",
-        "func": "let mensaje = \"Desarrollado por *Juan Ignacio Acuña* [https://github.com/juannnacuna/iot_tpi] \\n\";\nmensaje += \"Como trabajo final de la materia *Internet de las Cosas de la UNLP (año 2025)*.\\n\";\nmensaje += \"Se eligió la *Biblioteca Nacional Mariano Moreno* a modo de ejemplo.\\n\";\nmensaje += \"Este proyecto no tiene fines de lucro y no está asociado a la Biblioteca Nacional.\\n\";\nmensaje += \"¡*Gracias* por usar el bot! ❤\";\n\nmsg.payload.content = mensaje;\nmsg.payload.options = { parse_mode: \"Markdown\" };\n\nreturn msg;",
+        "func": "let mensaje = \"Desarrollado por *Juan Ignacio Acuña* (juanacunars@gmail.com)\\n\";\nmensaje += \"Como trabajo final de la materia *Internet de las Cosas de la UNLP (año 2025)*.\\n\";\nmensaje += \"Se eligió la *Biblioteca Nacional Mariano Moreno* a modo de ejemplo.\\n\";\nmensaje += \"Este proyecto no tiene fines de lucro y no está asociado a la Biblioteca Nacional.\\n\";\nmensaje += \"¡*Gracias* por usar el bot! ❤\";\n\nmsg.payload.content = mensaje;\nmsg.payload.options = { parse_mode: \"Markdown\" };\n\nreturn msg;",
         "outputs": 1,
         "timeout": 0,
         "noerr": 0,
@@ -554,7 +554,7 @@
         "removeregexcommand": false,
         "outputs": 2,
         "x": 390,
-        "y": 320,
+        "y": 380,
         "wires": [
             [
                 "4fbc4c207eee91d3"
@@ -573,7 +573,7 @@
         "linkType": "static",
         "timeout": "30",
         "x": 680,
-        "y": 320,
+        "y": 380,
         "wires": [
             [
                 "0b38a7078d6f25bf"
@@ -603,9 +603,54 @@
         "targetType": "msg",
         "statusVal": "",
         "statusType": "auto",
-        "x": 1280,
-        "y": 240,
+        "x": 1120,
+        "y": 300,
         "wires": []
+    },
+    {
+        "id": "bcee6f6dcba87192",
+        "type": "telegram command",
+        "z": "151660a0ec1199c0",
+        "name": "",
+        "command": "/ayuda",
+        "description": "",
+        "registercommand": false,
+        "language": "",
+        "scope": "default",
+        "bot": "d091af7db4be9e2e",
+        "strict": false,
+        "hasresponse": true,
+        "useregex": false,
+        "removeregexcommand": false,
+        "outputs": 2,
+        "x": 390,
+        "y": 320,
+        "wires": [
+            [
+                "9f1960b7c3b2cbd4"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "9f1960b7c3b2cbd4",
+        "type": "function",
+        "z": "151660a0ec1199c0",
+        "name": "set reply",
+        "func": "let mensaje = \"Con */estado* vas a poder consultar el estado actual de las unidades.\\n\\n\";\nmensaje += \"Vas a recibir primero un conteo del total de 💡 Unidades activas, seguido de un conteo de cada estado que pueden tener las unidades:\\n\"\nmensaje += \"🟢 Unidades libres: la unidad está disponible.\\n\";\nmensaje += \"🟡 Unidades potencialmente libres: no se puede determinar con certeza si está libre\\n\";\nmensaje += \"🔴 Unidades ocupadas: la unidad está ocupada\\n\\n\";\nmensaje += \"Finalmente recibirás una representación gráfica de estos estados para que puedas encontrar un lugar fácilmente. 😉\";\n\nmsg.payload.content = mensaje;\nmsg.payload.options = { parse_mode: \"Markdown\" };\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 660,
+        "y": 320,
+        "wires": [
+            [
+                "0b38a7078d6f25bf"
+            ]
+        ]
     },
     {
         "id": "1ddfb570e69ccb72",
