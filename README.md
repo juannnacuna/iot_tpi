@@ -2,6 +2,11 @@
 
 Este proyecto fue desarrollado como Trabajo Final para la materia Internet de las Cosas (2025), Facultad de Informática, Universidad Nacional de La Plata (UNLP)
 
+## Documentos
+- [Propuesta](assets/Propuesta.pdf)
+- [Presentación](assets/Presentacion.pdf)
+- [Informe](assets/Informe.pdf)
+
 ## Notas
 
 - Bot de Telegram corriendo por defecto en @catedra_iot_2025_acuna_integbot.
@@ -13,6 +18,8 @@ Este proyecto fue desarrollado como Trabajo Final para la materia Internet de la
 ## Informe
 
 ### Problema
+
+![Salon de Lectura de la Biblioteca Nacional Mariano Moreno](assets/salon_de_lectura.jpg)
 
 En entornos como bibliotecas universitarias o pisos de oficina existe una problemática común: la ineficiente gestión de sus espacios. En algunos casos los usuarios pierden tiempo buscando una unidad disponible. Otras veces no se cuenta con datos precisos sobre el uso real de las unidades, incluso aunque exista un sistema de reserva de unidades o salas privadas.
 
@@ -32,6 +39,8 @@ A cada nodo se le asignan unidades, para las cuales:
 - Hace una lectura de distancia al suelo, utilizando un sensor de distancia (Sensor Ultrasónico HC-SR04) que se ubica en la parte inferior de la mesa.
 - Maneja su estado (Libre, Potencialmente libre u Ocupado)
 
+![Cambios de estado](assets/cambios_de_estado.jpg)
+
 El propósito del estado Potencialmente libre es el de evitar falsos positivos, contemplando el uso real de las unidades ya que un usuario usualmente se levanta de su asiento brevemente, por ejemplo para buscar un libro o ir al sanitario.
 
 El cambio de estados es el siguiente: del estado Ocupado se pasa al Potencialmente libre cuando se lee una distancia larga, lo que quiere decir que ya no hay nadie sentado y la lectura del sensor se interpreta como la distancia de la mesa al suelo. En ese momento, se setea un timer que en caso de expirar la unidad pasa al estado Libre. Finalmente, tanto del estado Libre como del Potencialmente libre, en caso de leerse desde el sensor una distancia corta (interpretando que hay alguien sentado) la unidad pasa a estar ocupada.
@@ -40,6 +49,8 @@ El nodo se encarga de enviar el estado de sus unidades y las distancias leídas 
 Adicionalmente, el nodo hostea una interfaz web que permite interactuar con él localmente. Es posible visualizar las lecturas de los sensores así como alterar el estado de cada unidad asignada.
 
 La arquitectura de la solución es la siguiente:
+
+![Arquitectura](assets/arquitectura.jpg)
 
 Como se explicó anteriormente, cada nodo envía información al servidor central a través del protocolo MQTT. El servidor central, mediante el uso del broker Mosquitto, recibe los mensajes. Esa información es manejada por una instancia de Node-RED, que hace de “cerebro”: interpreta la información, la guarda en variables, hace distintos cálculos y se encarga de guardarla en la base de datos InfluxDB. Esta información se puede visualizar fácilmente desde Grafana. Por último, Node-RED también se encarga de controlar un bot de Telegram (@catedra_iot_2025_acuna_integbot), encargándose de responder los comandos.
 
