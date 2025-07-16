@@ -174,7 +174,7 @@
         "id": "d6063b03c59eef57",
         "type": "function",
         "z": "dbf9b3eaf4276235",
-        "name": "format para la db",
+        "name": "set allUnitStates[nodeId] and format",
         "func": "let topicSplit = msg.topic.split(\"/\");\n\nlet nodeId = String(topicSplit[1]);\nlet unitId = String(topicSplit[2]);\nlet data = msg.payload\n\nif (topicSplit[3] == \"distance\"){\n    msg.payload = [\n        { // Fields\n            distance_cm: data\n        },\n        { // Tags\n            node_id: nodeId,\n            unit_id: unitId,\n\n        }\n    ];\n} else if (topicSplit[3] == \"state\"){\n    msg.payload = [\n        { // Fields\n            state: data\n        },\n        { // Tags\n            node_id: nodeId,\n            unit_id: unitId,\n\n        }\n    ];\n\n    let allUnitStates = global.get('allUnitStates') || {}; // Obtiene el objeto, o crea uno si no existe\n    if (!allUnitStates[nodeId]) {\n        allUnitStates[nodeId] = {}; // Crea un objeto para este nodo si no existe\n    }\n    allUnitStates[nodeId][unitId] = data; // Guarda el estado de esta unidad\n    global.set('allUnitStates', allUnitStates); // Actualiza la variable de contexto\n}\n\nreturn msg;",
         "outputs": 1,
         "timeout": 0,
@@ -182,7 +182,7 @@
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 570,
+        "x": 580,
         "y": 340,
         "wires": [
             [
@@ -235,8 +235,8 @@
         "id": "87d7433193ed2d86",
         "type": "debug",
         "z": "dbf9b3eaf4276235",
-        "name": "debug 7",
-        "active": true,
+        "name": "Ver calculos",
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -244,7 +244,7 @@
         "targetType": "full",
         "statusVal": "",
         "statusType": "auto",
-        "x": 1040,
+        "x": 1050,
         "y": 680,
         "wires": []
     },
@@ -289,7 +289,7 @@
         "id": "6899bdd3fe5e293d",
         "type": "function",
         "z": "dbf9b3eaf4276235",
-        "name": "simular unitStates",
+        "name": "simular unitStates, set allUnitStates[nodeId] and format",
         "func": "let allUnitStates = global.get('allUnitStates') || {}; // Obtiene el objeto, o crea uno si no existe\n\nconst SIMULATED_UNITS = [\"A\", \"B\", \"C\", \"D\"]; // IDs de las unidades por cada nodo\nconst UMBRAL_OCUPADO_CM = 85; // Simula un umbral para 'ocupado'\nconst UMBRAL_POTENCIALMENTE_LIBRE_CM = 95; // Simula un umbral para 'potencialmente libre'\n\nlet messages = []; // Array para almacenar los mensajes a enviar\nfor (let nodeId = 10; nodeId < 37; nodeId++) {\n    SIMULATED_UNITS.forEach(unitId => {\n        let simulatedState;\n\n        const randomChance = Math.random();\n\n        if (randomChance < 0.4) { // 40% de probabilidad de ser ocupado;\n            simulatedState = \"Ocupado\";\n        } else if (randomChance < 0.6) { // 20% de probabilidad de ser potencialmente libre\n            simulatedState = \"Potencialmente libre\";\n        } else { // 40% de probabilidad de ser libre\n            simulatedState = \"Libre\";\n        }\n\n        // Construir el mensaje para InfluxDB (formato de objeto único)\n        let influxMsg = {\n            payload: [\n                {\n                    state: simulatedState\n                },\n                {\n                    node_id: String(nodeId),\n                    unit_id: unitId\n                }\n            ]\n        };\n        messages.push(influxMsg);\n\n        if (!allUnitStates[nodeId]) {\n            allUnitStates[nodeId] = {}; // Crea un objeto para este nodo si no existe\n        }\n        allUnitStates[nodeId][unitId] = simulatedState; // Guarda el estado de esta unidad\n    });\n};\n\nglobal.set('allUnitStates', allUnitStates); // Actualiza la variable de contexto\n\nmessages.forEach(msg => {\n    node.send(msg);\n});\nreturn null; // No retornar nada aquí para evitar un mensaje adicional",
         "outputs": 1,
         "timeout": 0,
@@ -297,7 +297,7 @@
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 750,
+        "x": 840,
         "y": 460,
         "wires": [
             [
@@ -311,7 +311,7 @@
         "type": "debug",
         "z": "dbf9b3eaf4276235",
         "name": "Ver estados simulados",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -319,8 +319,8 @@
         "targetType": "msg",
         "statusVal": "",
         "statusType": "auto",
-        "x": 1060,
-        "y": 460,
+        "x": 1160,
+        "y": 500,
         "wires": []
     },
     {
@@ -406,7 +406,9 @@
         "x": 1030,
         "y": 240,
         "wires": [
-            []
+            [
+                "74addc48a7b540d5"
+            ]
         ]
     },
     {
@@ -414,7 +416,7 @@
         "type": "debug",
         "z": "151660a0ec1199c0",
         "name": "ver nuevo msg.payload",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -478,7 +480,7 @@
         "type": "debug",
         "z": "151660a0ec1199c0",
         "name": "ver formato de msg de Telegram",
-        "active": true,
+        "active": false,
         "tosidebar": true,
         "console": false,
         "tostatus": false,
@@ -589,6 +591,23 @@
         "wires": []
     },
     {
+        "id": "74addc48a7b540d5",
+        "type": "debug",
+        "z": "151660a0ec1199c0",
+        "name": "ver mensaje enviado",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1280,
+        "y": 240,
+        "wires": []
+    },
+    {
         "id": "1ddfb570e69ccb72",
         "type": "function",
         "z": "e05f7e0e627cdb46",
@@ -674,7 +693,7 @@
         "initialize": "",
         "finalize": "",
         "libs": [],
-        "x": 1230,
+        "x": 1190,
         "y": 220,
         "wires": [
             [
@@ -740,7 +759,7 @@
         "z": "e05f7e0e627cdb46",
         "name": "link in handle /estado",
         "links": [],
-        "x": 185,
+        "x": 255,
         "y": 140,
         "wires": [
             [
@@ -799,7 +818,7 @@
         "name": "link out 3",
         "mode": "return",
         "links": [],
-        "x": 1455,
+        "x": 1375,
         "y": 220,
         "wires": []
     },
@@ -830,7 +849,7 @@
         "name": "Este flujo se encarga de cargar la imagen, graficar el estado de los nodos, y enviarla.",
         "info": "",
         "x": 770,
-        "y": 360,
+        "y": 340,
         "wires": []
     },
     {
@@ -854,8 +873,8 @@
         "topic": "",
         "payload": "",
         "payloadType": "date",
-        "x": 440,
-        "y": 540,
+        "x": 420,
+        "y": 460,
         "wires": [
             [
                 "d127d45b7f55f0d6"
@@ -874,8 +893,8 @@
         "sendError": false,
         "encoding": "none",
         "allProps": false,
-        "x": 880,
-        "y": 540,
+        "x": 860,
+        "y": 460,
         "wires": [
             [
                 "17b90ad5097e5fdd"
@@ -901,8 +920,8 @@
         "from": "",
         "to": "",
         "reg": false,
-        "x": 1060,
-        "y": 540,
+        "x": 1040,
+        "y": 460,
         "wires": [
             []
         ]
@@ -922,8 +941,8 @@
         "checkall": "true",
         "repair": false,
         "outputs": 1,
-        "x": 680,
-        "y": 540,
+        "x": 660,
+        "y": 460,
         "wires": [
             [
                 "e8d7f3523a8bd0b9"
@@ -936,8 +955,8 @@
         "z": "e05f7e0e627cdb46",
         "name": "Se carga el plano como variable global (si no está cargado)",
         "info": "",
-        "x": 750,
-        "y": 500,
+        "x": 730,
+        "y": 420,
         "wires": []
     }
 ]
